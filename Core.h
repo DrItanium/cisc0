@@ -66,7 +66,6 @@ namespace cisc0 {
 				Swap, 
 				Return, 
 				Complex, 
-				Count 
 			};
 			class HasBitmask {
 				public:
@@ -92,20 +91,6 @@ namespace cisc0 {
 				private:
 					RegisterIndex _src;
 			};
-			class ImmediateFlag {
-				public:
-					ImmediateFlag() : _imm(false) { }
-					bool isImmediate() const noexcept { return _imm; }
-					void setImmediate(bool imm) noexcept { _imm = imm; }
-				private:
-					bool _imm;
-			};
-			template<bool value>
-			class ConstantImmediateFlag {
-				public:
-					ConstantImmediateFlag() { };
-					constexpr bool isImmediate() const noexcept { return value; }
-			};
 
 			class HasImmediateValue {
 				public:
@@ -115,58 +100,75 @@ namespace cisc0 {
 				private:
 					Address _value;
 			};
+			template<typename S>
+			class HasStyle {
+					static_assert(std::is_enum_v<S>, "HasStyle must be provided with an enum!");
+				public:
+					using Style = S;
+					HasStyle() : _value(static_cast<S>(0)) { }
+					Style getStyle() const noexcept { return _value; }
+					void setStyle(Style s) noexcept { _value = s; }
+				private:
+					Style _value;
+			};
 
-			template<OperationCode op>
-			struct Operation : HasDestination {
-				Operation() { }
-				~Operation() { }
-				constexpr OperationCode getOpcode() const noexcept { return op; }
+			struct Set : HasDestination, HasBitmask, HasImmediateValue { };
+			struct Swap : HasDestination, HasSource { };
+			struct Memory : HasDestination, HasSource, HasBitmask { };
+
+			enum class CompareStyle : byte { 
+				Equals, 
+				NotEquals, 
+				LessThan, 
+				GreaterThan, 
+				LessThanOrEqualTo, 
+				GreaterThanOrEqualTo, 
+				MoveFromCondition, 
+				MoveToCondition, 
 			};
-			struct Set : Operation<OperationCode::Set>, HasBitmask {
-				using Parent = Operation<OperationCode::Set>;
-				using Parent::Parent;
-				void setImmediate(Address value);
-				Address getImmediate() const noexcept { return _immediate; }
-				private:
-					Address _immediate = 0;
-			};
-			struct Swap : Operation<OperationCode::Swap>, HasSource {
-				using Parent = Operation<OperationCode::Swap>;
-				using Parent::Parent;
-			};
-			struct Memory : Operation<OperationCode::Memory>, HasSource, HasBitmask {
-				using Parent = Operation<OperationCode::Memory>;
-				using Parent::Parent;
-			};
-			template<bool immediate>
-			struct CompareGeneric  : Operation<OperationCode::Compare>, ConstantImmediateFlag<immediate> {
-				enum class Style : byte { 
-					Equals, 
-					NotEquals, 
-					LessThan, 
-					GreaterThan, 
-					LessThanOrEqualTo, 
-					GreaterThanOrEqualTo, 
-					MoveFromCondition, 
-					MoveToCondition, 
-				};
-				using Parent = Operation<OperationCode::Compare>;
-				using Parent::Parent;
-				Style getStyle() const noexcept { return _style; }
-				void setStyle(Style style) noexcept { _style = style; }
-				private:
-					Style _style;
-			};
-			struct CompareRegister : CompareGeneric<false>, HasSource {
-				using Parent = CompareGeneric<false>;
-				using Parent::Parent;
-			};
-			struct CompareImmediate : CompareGeneric<true>, HasBitmask, HasImmediateValue  {
-				using Parent = CompareGeneric<true>;
-				using Parent::Parent;
-			};
+			struct CompareGeneric  : HasDestination, HasStyle<CompareStyle> { };
+			struct CompareRegister : CompareGeneric, HasSource { };
+			struct CompareImmediate : CompareGeneric, HasBitmask, HasImmediateValue  { };
 			using Compare = std::variant<CompareRegister, CompareImmediate>;
 
+			enum class ArithmeticStyle : byte { 
+				Add,
+				Sub,
+				Mul,
+				Div,
+				Rem,
+				Min,
+				Max,
+			};
+			struct ArithmeticGeneric : HasDestination, HasStyle<ArithmeticStyle> { };
+			struct ArithmeticRegister : ArithmeticGeneric, HasSource { };
+			struct ArithmeticImmediate : ArithmeticGeneric, HasBitmask, HasImmediateValue { };
+			using Arithmetic = std::variant<ArithmeticRegister, ArithmeticImmediate>;
+			enum class LogicalStyle : byte { 
+				And, 
+				Or, 
+				Xor, 
+				Nand, 
+				Not 
+			};
+			struct LogicalGeneric : HasDestination, HasStyle<LogicalStyle> { };
+			struct LogicalRegister : LogicalGeneric, HasSource { };
+			struct LogicalImmediate : LogicalGeneric, HasBitmask, HasImmediateValue { };
+			using Logical = std::variant<LogicalRegister, LogicalImmediate>;
+			struct ShiftGeneric : HasDestination {
+				bool shiftLeft() const noexcept { return _shiftLeft; }
+				void setShiftLeft(bool value) noexcept { _shiftLeft = value; }
+				private:
+					bool _shiftLeft = false;
+			};
+			struct ShiftRegister : ShiftGeneric, HasSource { };
+			struct ShiftImmediate : ShiftGeneric {
+				void setShiftAmount(byte value) noexcept { _imm5 = value & 0b00011111; }
+				byte getShiftAmount() const noexcept { return _imm5; }
+				private:
+					byte _imm5;
+			};
+			using Shift = std::variant<ShiftRegister, ShiftImmediate>;
 		public:
 			
 	};
