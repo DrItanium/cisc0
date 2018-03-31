@@ -38,10 +38,8 @@ flags = [
     'c++',
     '-D_POSIX_SOURCE',
     '-I.',
-    '-Imisc/maya/',
-    '-Imisc/PEGTL/include',
     '-Wall',
-    '-std=c++14',
+    '-std=c++17',
 ]
 
 
