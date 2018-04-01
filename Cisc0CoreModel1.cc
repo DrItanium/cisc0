@@ -1,6 +1,6 @@
 /*
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
 #include "Cisc0ClipsExtensions.h"
 
 namespace cisc0 {
-	CoreModel1::CoreModel1(syn::CLIPSIOController& bus) noexcept : Parent(bus), _instruction(getInstructionPointer()) { }
+	CoreModel1::CoreModel1(cisc0::CLIPSIOController& bus) noexcept : Parent(bus), _instruction(getInstructionPointer()) { }
     CoreModel1::~CoreModel1() noexcept { }
 
     void CoreModel1::initialize() {
@@ -60,7 +60,7 @@ namespace cisc0 {
         return execute;
     }
     constexpr RegisterValue castWithMask(RegisterValue base, RegisterValue mask) noexcept {
-        return syn::decodeBits<RegisterValue, RegisterValue>(base, mask, 0);
+        return cisc0::decodeBits<RegisterValue, RegisterValue>(base, mask, 0);
     }
     void CoreModel1::dispatch() {
         auto swapOperation = [this]() noexcept {
@@ -143,10 +143,10 @@ namespace cisc0 {
 		auto compareResult = getSubtype<group>();
         auto normalCompare = [this, compareResult]() {
 			auto compareUnitType = translate(compareResult);
-        	syn::throwOnErrorState(compareResult, "Illegal compare type!");
+        	cisc0::throwOnErrorState(compareResult, "Illegal compare type!");
 			auto first = getDestinationRegister<group>();
             auto second = retrieveSourceOrImmediate<group>();
-			getConditionRegister() = syn::Comparator::performOperation(compareUnitType, first, second);
+			getConditionRegister() = cisc0::Comparator::performOperation(compareUnitType, first, second);
         };
         switch(compareResult) {
             case CompareStyle::MoveToCondition:
@@ -161,7 +161,7 @@ namespace cisc0 {
         }
     }
     inline constexpr RegisterValue maskRegisterValue(RegisterValue base, RegisterValue newValue, RegisterValue fullMask) noexcept {
-        return syn::encodeBits<RegisterValue, RegisterValue>(base, newValue, fullMask, 0);
+        return cisc0::encodeBits<RegisterValue, RegisterValue>(base, newValue, fullMask, 0);
     }
     void CoreModel1::memoryOperation() {
         static constexpr auto group = Operation::Memory;
@@ -178,7 +178,7 @@ namespace cisc0 {
         };
         auto pushOperation = [this, useUpper, useLower, fullMask]() {
             if (_instruction.firstWord().isIndirectOperation()) {
-                throw syn::Problem("Indirect bit not supported in push operations!");
+                throw cisc0::Problem("Indirect bit not supported in push operations!");
             }
             // just fully mask the loaded value!
             // update the target stack to something different
@@ -192,7 +192,7 @@ namespace cisc0 {
         };
         auto popOperation = [this, useUpper, useLower, fullMask]() {
             if (_instruction.firstWord().isIndirectOperation()) {
-                throw syn::Problem("Indirect bit not supported in pop operations!");
+                throw cisc0::Problem("Indirect bit not supported in pop operations!");
             }
             // the order of popping matters!
             auto lower = useLower ? popWord() : 0;
@@ -218,7 +218,7 @@ namespace cisc0 {
                 popOperation();
                 break;
             default:
-                throw syn::Problem("Illegal memory operation!");
+                throw cisc0::Problem("Illegal memory operation!");
         }
     }
 
@@ -237,7 +237,7 @@ namespace cisc0 {
 				featureCheckOperation();
 				break;
             default:
-                throw syn::Problem("Undefined complex subtype!");
+                throw cisc0::Problem("Undefined complex subtype!");
         }
     }
     void CoreModel1::shiftOperation() {
@@ -245,7 +245,7 @@ namespace cisc0 {
         auto source = retrieveSourceOrImmediate<group>();
         if (source != 0) {
             auto direction = _instruction.firstWord().shouldShiftLeft() ?  ALUOperation::ShiftLeft : ALUOperation::ShiftRight;
-            setDestinationRegister<group>(syn::ALU::performOperation<RegisterValue>(direction, getDestinationRegister<group>(), source));
+            setDestinationRegister<group>(cisc0::ALU::performOperation<RegisterValue>(direction, getDestinationRegister<group>(), source));
         }
     }
 
@@ -273,10 +273,10 @@ namespace cisc0 {
 				pushRegisterValue(getValueRegister());
 				break;
 			case ExtendedOperation::IsEven:
-                getConditionRegister() = syn::isEven(getDestinationRegister<group>());
+                getConditionRegister() = cisc0::isEven(getDestinationRegister<group>());
 				break;
 			case ExtendedOperation::IsOdd:
-                getConditionRegister() = syn::isOdd(getDestinationRegister<group>());
+                getConditionRegister() = cisc0::isOdd(getDestinationRegister<group>());
 				break;
 			case ExtendedOperation::IncrementValueAddr:
 				++getValueRegister();
@@ -290,7 +290,7 @@ namespace cisc0 {
 				wordsBeforeFirstZero();
 				break;
 			default:
-				throw syn::Problem("Undefined extended operation!");
+				throw cisc0::Problem("Undefined extended operation!");
         }
     }
 	void CoreModel1::parsingOperation() {
@@ -307,7 +307,7 @@ namespace cisc0 {
 				storeWord(getValueRegister(), loadWord(getAddressRegister()));
 				break;
 			default:
-				throw syn::Problem("Illegal parsing operation!");
+				throw cisc0::Problem("Illegal parsing operation!");
 		}
 	}
 
@@ -318,8 +318,8 @@ namespace cisc0 {
         auto subType = getSubtype<group>();
         auto defaultArithmetic = [this, src0, src1, subType]() {
             auto result = translate(subType);
-            syn::throwOnErrorState(result, "Illegal arithmetic operation!");
-            setDestinationRegister<group>(syn::ALU::performOperation<RegisterValue>(result, src0, src1));
+            cisc0::throwOnErrorState(result, "Illegal arithmetic operation!");
+            setDestinationRegister<group>(cisc0::ALU::performOperation<RegisterValue>(result, src0, src1));
         };
         switch(subType) {
             case ArithmeticOps::Min:
@@ -337,11 +337,11 @@ namespace cisc0 {
     void CoreModel1::logicalOperation() {
         static constexpr auto group = Operation::Logical;
         auto result = translate(getSubtype<group>());
-        syn::throwOnErrorState(result, "Illegal logical operation!");
+        cisc0::throwOnErrorState(result, "Illegal logical operation!");
         auto op = result;
         auto source1 = retrieveSourceOrImmediate<group>();
         auto dest = getDestinationRegister<group>();
-        setDestinationRegister<group>(syn::ALU::performOperation<RegisterValue>(op, dest, source1));
+        setDestinationRegister<group>(cisc0::ALU::performOperation<RegisterValue>(op, dest, source1));
     }
 
 
@@ -365,7 +365,7 @@ namespace cisc0 {
 				_terminateAddress = getValueRegister();
 				break;
 			default:
-				throw syn::Problem("Undefined feature check operation!");
+				throw cisc0::Problem("Undefined feature check operation!");
 		}
 	}
     void CoreModel1::FusedInstruction::reset(Word first, Word second, Word third) noexcept {

@@ -1,6 +1,6 @@
 /*
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ namespace cisc0 {
         }
     }
 
-    CoreModel0::CoreModel0(syn::CLIPSIOController& bus) noexcept : Parent(bus) { };
+    CoreModel0::CoreModel0(cisc0::CLIPSIOController& bus) noexcept : Parent(bus) { };
 
     CoreModel0::~CoreModel0() noexcept { }
 
@@ -74,7 +74,7 @@ namespace cisc0 {
 			// make sure that the control bits are always zero in this case so
 			// that backwards compatibility isn't broken
             if (_first.getSubtypeControlBits() != 0) {
-				throw syn::Problem("Control bits for swap must be zero!");
+				throw cisc0::Problem("Control bits for swap must be zero!");
 			}
             auto dInd = _first.getDestinationRegister<group>();
             auto sInd = _first.getSourceRegister<group>();
@@ -88,7 +88,7 @@ namespace cisc0 {
             auto dInd = _first.getDestinationRegister<group>();
             auto source0 = registerValue(_first.getSourceRegister<group>());
             auto bmask = mask(_first.getBitmask<group>());
-            registerValue(dInd) = syn::decodeBits<T, T>(source0, bmask, 0);
+            registerValue(dInd) = cisc0::decodeBits<T, T>(source0, bmask, 0);
         };
         auto setOperation = [this] () {
             constexpr auto group = Operation::Set;
@@ -180,8 +180,8 @@ namespace cisc0 {
 			auto first = registerValue(destinationIndex);
 			auto second = _first.getImmediateFlag<group>() ? retrieveImmediate(_first.getBitmask<group>()) : registerValue(_first.getSourceRegister<group>());
 			auto compareUnitType = translate(compareResult);
-        	syn::throwOnErrorState(compareResult, "Illegal compare type!");
-			getConditionRegister() = syn::Comparator::performOperation(compareUnitType, first, second);
+        	cisc0::throwOnErrorState(compareResult, "Illegal compare type!");
+			getConditionRegister() = cisc0::Comparator::performOperation(compareUnitType, first, second);
         };
         switch(compareResult) {
             case CompareStyle::MoveToCondition:
@@ -217,7 +217,7 @@ namespace cisc0 {
                 auto lower = useLower ? encodeLowerHalf(0, loadWord(address)) : 0;
                 auto upper = useUpper ? encodeUpperHalf(0, loadWord(address + 1)) : 0;
                 auto combinedValue = lower | upper;
-                value = syn::encodeBits<RegisterValue, RegisterValue>(0, combinedValue, fullMask, 0);
+                value = cisc0::encodeBits<RegisterValue, RegisterValue>(0, combinedValue, fullMask, 0);
             }
         };
         auto storeOperation = [this, computeAddress, useLower, useUpper, lmask, umask]() {
@@ -247,7 +247,7 @@ namespace cisc0 {
         };
         auto pushOperation = [this, useUpper, useLower, umask, lmask]() {
             if (_first.isIndirectOperation()) {
-                throw syn::Problem("Indirect bit not supported in push operations!");
+                throw cisc0::Problem("Indirect bit not supported in push operations!");
             }
             // update the target stack to something different
             auto pushToStack = registerValue(_first.getDestination());
@@ -261,7 +261,7 @@ namespace cisc0 {
         };
         auto popOperation = [this, useUpper, useLower, lmask, umask]() {
             if (_first.isIndirectOperation()) {
-                throw syn::Problem("Indirect bit not supported in pop operations!");
+                throw cisc0::Problem("Indirect bit not supported in pop operations!");
             }
             auto lower = useLower ? lmask & popWord() : 0;
             auto upper = useUpper ? umask & popWord() : 0;
@@ -285,7 +285,7 @@ namespace cisc0 {
                 popOperation();
                 break;
             default:
-                throw syn::Problem("Illegal memory operation!");
+                throw cisc0::Problem("Illegal memory operation!");
         }
     }
 
@@ -294,7 +294,7 @@ namespace cisc0 {
         auto &destination = registerValue(_first.getDestinationRegister<group>());
         auto source = (_first.getImmediateFlag<group>() ? static_cast<RegisterValue>(_first.getImmediate<group>()) : registerValue(_first.getSourceRegister<group>()));
 		auto direction = _first.shouldShiftLeft() ? ALUOperation::ShiftLeft : ALUOperation::ShiftRight;
-        destination = syn::ALU::performOperation<RegisterValue>(direction, destination, source);
+        destination = cisc0::ALU::performOperation<RegisterValue>(direction, destination, source);
     }
 
     void CoreModel0::complexOperation() {
@@ -310,7 +310,7 @@ namespace cisc0 {
 				parsingOperation();
 				break;
             default:
-                throw syn::Problem("Undefined complex subtype!");
+                throw cisc0::Problem("Undefined complex subtype!");
         }
     }
 
@@ -338,10 +338,10 @@ namespace cisc0 {
 				pushRegisterValue(getValueRegister());
 				break;
 			case ExtendedOperation::IsEven:
-				getConditionRegister() = syn::isEven(registerValue(_first.getDestinationRegister<group>()));
+				getConditionRegister() = cisc0::isEven(registerValue(_first.getDestinationRegister<group>()));
 				break;
 			case ExtendedOperation::IsOdd:
-				getConditionRegister() = syn::isOdd(registerValue(_first.getDestinationRegister<group>()));
+				getConditionRegister() = cisc0::isOdd(registerValue(_first.getDestinationRegister<group>()));
 				break;
 			case ExtendedOperation::IncrementValueAddr:
 				++getValueRegister();
@@ -355,7 +355,7 @@ namespace cisc0 {
 				wordsBeforeFirstZero();
 				break;
 			default:
-				throw syn::Problem("Undefined extended operation!");
+				throw cisc0::Problem("Undefined extended operation!");
         }
     }
 	void CoreModel0::parsingOperation() {
@@ -372,7 +372,7 @@ namespace cisc0 {
 				storeWord(getValueRegister(), loadWord(getAddressRegister()));
 				break;
 			default:
-				throw syn::Problem("Illegal parsing operation!");
+				throw cisc0::Problem("Illegal parsing operation!");
 		}
 	}
 
@@ -388,10 +388,10 @@ namespace cisc0 {
         };
         auto defaultArithmetic = [this, &src0, src1]() {
             auto result = translate(_first.getSubtype<group>());
-            syn::throwOnErrorState(result, "Illegal arithmetic operation!");
+            cisc0::throwOnErrorState(result, "Illegal arithmetic operation!");
             auto src = src1;
             auto& dest = src0;
-            dest = syn::ALU::performOperation<RegisterValue>(result, dest, src);
+            dest = cisc0::ALU::performOperation<RegisterValue>(result, dest, src);
         };
         switch(_first.getSubtype<group>()) {
             case ArithmeticOps::Min:
@@ -409,11 +409,11 @@ namespace cisc0 {
     void CoreModel0::logicalOperation() {
         static constexpr auto group = Operation::Logical;
         auto result = translate(_first.getSubtype<group>());
-        syn::throwOnErrorState(result, "Illegal logical operation!");
+        cisc0::throwOnErrorState(result, "Illegal logical operation!");
         auto op = result;
         auto source1 = _first.getImmediateFlag<group>() ? retrieveImmediate(_first.getBitmask<group>()) : registerValue(_first.getSourceRegister<group>());
         auto& dest = registerValue(_first.getDestinationRegister<group>());
-        dest = syn::ALU::performOperation<RegisterValue>(op, dest, source1);
+        dest = cisc0::ALU::performOperation<RegisterValue>(op, dest, source1);
     }
 
     void CoreModel0::encodingOperation() {

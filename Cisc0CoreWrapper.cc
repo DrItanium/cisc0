@@ -1,6 +1,6 @@
 /*
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,9 @@
 
 namespace cisc0 {
     template<typename T = Core>
-    class CoreWrapper : public syn::CoreWrapper<T> {
+    class CoreWrapper : public cisc0::CoreWrapper<T> {
         public:
-            using Parent = syn::CoreWrapper<T>;
+            using Parent = cisc0::CoreWrapper<T>;
 			using Self = CoreWrapper<T>;
 			enum class Operations {
 				WriteMemory,
@@ -47,18 +47,18 @@ namespace cisc0 {
 			};
         public:
             using Parent::Parent;
-			virtual bool decodeInstruction(void* env, syn::DataObjectPtr ret, const std::string& op) override {
+			virtual bool decodeInstruction(void* env, cisc0::DataObjectPtr ret, const std::string& op) override {
 				// we expect three args
 				__RETURN_FALSE_ON_FALSE__(Self::checkArgumentCount(env, ret, op, 3));
 				CLIPSValue encodedValue;
-				__RETURN_FALSE_ON_FALSE__(Self::tryExtractArgument1(env, ret, &encodedValue, syn::MayaType::Integer, "Must provide an encoded integer value for translation!"));
-				auto part0 = syn::extractLong<RawInstruction>(env, encodedValue);
+				__RETURN_FALSE_ON_FALSE__(Self::tryExtractArgument1(env, ret, &encodedValue, cisc0::MayaType::Integer, "Must provide an encoded integer value for translation!"));
+				auto part0 = cisc0::extractLong<RawInstruction>(env, encodedValue);
 				CLIPSValue encodedValue1;
-				__RETURN_FALSE_ON_FALSE__(Self::tryExtractArgument2(env, ret, &encodedValue1, syn::MayaType::Integer, "Must provide an encoded integer value for translation!"));
-				auto part1 = syn::extractLong<RawInstruction>(env, encodedValue1);
+				__RETURN_FALSE_ON_FALSE__(Self::tryExtractArgument2(env, ret, &encodedValue1, cisc0::MayaType::Integer, "Must provide an encoded integer value for translation!"));
+				auto part1 = cisc0::extractLong<RawInstruction>(env, encodedValue1);
 				CLIPSValue encodedValue2;
-				__RETURN_FALSE_ON_FALSE__(Self::tryExtractArgument3(env, ret, &encodedValue2, syn::MayaType::Integer, "Must provide an encoded integer value for translation!"));
-				auto part2 = syn::extractLong<RawInstruction>(env, encodedValue2);
+				__RETURN_FALSE_ON_FALSE__(Self::tryExtractArgument3(env, ret, &encodedValue2, cisc0::MayaType::Integer, "Must provide an encoded integer value for translation!"));
+				auto part2 = cisc0::extractLong<RawInstruction>(env, encodedValue2);
 				auto outcome = cisc0::translateInstruction(part0, part1, part2);
 				CVSetString(ret, outcome.c_str());
 				return true;
@@ -92,7 +92,7 @@ namespace cisc0 {
 		};
 		CLIPSValue operation;
         __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractFunctionName(env, ret, &operation));
-		std::string opStr(syn::extractLexeme(env, operation));
+		std::string opStr(cisc0::extractLexeme(env, operation));
 		auto result = ops.find(opStr);
         __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::isLegalOperation(env, ret, opStr, result, ops.end()));
 		WrappedOp fop;
@@ -101,36 +101,36 @@ namespace cisc0 {
         __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::checkArgumentCount(env, ret, opStr, argCount));
 		auto getRegister = [this, env, ret]() {
 			CLIPSValue index;
-            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument1(env, ret, &index, syn::MayaType::Integer, "Must provide an integer index to retrieve a register value!"));
-			auto i = syn::extractLong(env, index);
+            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument1(env, ret, &index, cisc0::MayaType::Integer, "Must provide an integer index to retrieve a register value!"));
+			auto i = cisc0::extractLong(env, index);
             __RETURN_FALSE_ON_FALSE__(failOnIllegalRegisterIndex(env, ret, i));
 			CVSetInteger(ret, this->registerValue(static_cast<byte>(i)));
 			return true;
 		};
 		auto setRegister = [this, env, ret]() {
 			CLIPSValue index;
-            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument1(env, ret, &index, syn::MayaType::Integer, "Must provide an integer index to assign a register value!"));
-			auto ind = syn::extractLong(env, index);
+            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument1(env, ret, &index, cisc0::MayaType::Integer, "Must provide an integer index to assign a register value!"));
+			auto ind = cisc0::extractLong(env, index);
             __RETURN_FALSE_ON_FALSE__(failOnIllegalRegisterIndex(env, ret, ind));
             CLIPSValue value;
-            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument2(env, ret, &value, syn::MayaType::Integer, "Must provide an integer value to assign to the given register!"));
-			registerValue(static_cast<byte>(ind)) = syn::extractLong<RegisterValue>(env, value);
-            return syn::setClipsBoolean(ret);
+            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument2(env, ret, &value, cisc0::MayaType::Integer, "Must provide an integer value to assign to the given register!"));
+			registerValue(static_cast<byte>(ind)) = cisc0::extractLong<RegisterValue>(env, value);
+            return cisc0::setClipsBoolean(ret);
 		};
 		auto readMemory = [this, env, ret]() {
 			CLIPSValue index;
-            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument1(env, ret, &index, syn::MayaType::Integer, "Must provide an integer index to retrieve a memory value!"));
-			CVSetInteger(ret, loadWord(syn::extractLong<RegisterValue>(env, index)));
+            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument1(env, ret, &index, cisc0::MayaType::Integer, "Must provide an integer index to retrieve a memory value!"));
+			CVSetInteger(ret, loadWord(cisc0::extractLong<RegisterValue>(env, index)));
 			return true;
 		};
 		auto writeMemory = [this, env, ret]() {
 			CLIPSValue index;
-            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument1(env, ret, &index, syn::MayaType::Integer, "Must provide an integer index to assign a register value!"));
-			auto ind = syn::extractLong<Address>(env, index);
+            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument1(env, ret, &index, cisc0::MayaType::Integer, "Must provide an integer index to assign a register value!"));
+			auto ind = cisc0::extractLong<Address>(env, index);
             CLIPSValue value;
-            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument2(env, ret, &value, syn::MayaType::Integer, "Must provide an integer value to assign to the given register!"));
-			storeWord(ind, syn::extractLong<Word>(env, value));
-            return syn::setClipsBoolean(ret);
+            __RETURN_FALSE_ON_FALSE__(DefaultCoreWrapper::tryExtractArgument2(env, ret, &value, cisc0::MayaType::Integer, "Must provide an integer value to assign to the given register!"));
+			storeWord(ind, cisc0::extractLong<Word>(env, value));
+            return cisc0::setClipsBoolean(ret);
 		};
 		CVSetBoolean(ret, true);
 		try {
@@ -147,31 +147,31 @@ namespace cisc0 {
                     return DefaultCoreWrapper::callErrorMessageCode3(env, ret, opStr, " <- legal but unimplemented operation!");
 			}
 			return true;
-		} catch(const syn::Problem& p) {
+		} catch(const cisc0::Problem& p) {
             return DefaultCoreWrapper::callErrorCode2(env, ret, p.what());
 		}
 	}
 } // end namespace cisc0
 
-namespace syn {
+namespace cisc0 {
 	DefWrapperSymbolicName(cisc0::CoreModel0,  "cisc0-core-model0");
 	DefWrapperSymbolicName(cisc0::CoreModel1,  "cisc0-core-model1");
     // this is here for compilation purposes only!
     DefWrapperSymbolicName(cisc0::Core, "cisc0-abstract-core");
     DefExternalAddressWrapperType(cisc0::CoreModel0, cisc0::CoreWrapper<cisc0::CoreModel0>);
     DefExternalAddressWrapperType(cisc0::CoreModel1, cisc0::CoreWrapper<cisc0::CoreModel1>);
-} // end namespace syn
+} // end namespace cisc0
 
-namespace syn {
+namespace cisc0 {
 	namespace WrappedNewCallBuilder {
 		template<>
 		cisc0::CoreModel1* invokeNewFunction<cisc0::CoreModel1>(void* env, CLIPSValuePtr ret, const std::string& funcErrorPrefix, const std::string& function) noexcept {
-			return syn::newCore<cisc0::CoreModel1>(env, ret, funcErrorPrefix, function);
+			return cisc0::newCore<cisc0::CoreModel1>(env, ret, funcErrorPrefix, function);
 		}
 		template<>
 		cisc0::CoreModel0* invokeNewFunction<cisc0::CoreModel0>(void* env, CLIPSValuePtr ret, const std::string& funcErrorPrefix, const std::string& function) noexcept {
-			return syn::newCore<cisc0::CoreModel0>(env, ret, funcErrorPrefix, function);
+			return cisc0::newCore<cisc0::CoreModel0>(env, ret, funcErrorPrefix, function);
 		}
 	} // end namespace WrappedNewCallBuilder
-} // end namespace syn
+} // end namespace cisc0
 

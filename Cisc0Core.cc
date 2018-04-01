@@ -1,6 +1,6 @@
 /*
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
 #include "Cisc0ClipsExtensions.h"
 
 namespace cisc0 {
-    Core::Core(syn::CLIPSIOController& bus) noexcept : Parent(bus) { }
+    Core::Core(cisc0::CLIPSIOController& bus) noexcept : Parent(bus) { }
 
     void Core::initialize() {
 		_gpr.initialize();
@@ -55,7 +55,7 @@ namespace cisc0 {
         str << "Illegal instruction " << std::hex << static_cast<int>(current.getControl()) << std::endl;
         str << "Location: " << std::hex << ip << std::endl;
         auto s = str.str();
-        throw syn::Problem(s);
+        throw cisc0::Problem(s);
     }
 
     RegisterValue& Core::getInstructionPointer() noexcept { return registerValue(ArchitectureConstants::InstructionPointer); }
@@ -68,24 +68,24 @@ namespace cisc0 {
     RegisterValue  Core::getFieldRegister() noexcept { return 0b11111 & registerValue(ArchitectureConstants::FieldRegister); }
 
     void Core::setBit() {
-        defaultSliceBitAndCheck<syn::Comparator::StandardOperations::Eq>();
+        defaultSliceBitAndCheck<cisc0::Comparator::StandardOperations::Eq>();
     }
 
     void Core::unsetBit() {
-        defaultSliceBitAndCheck<syn::Comparator::StandardOperations::Neq>();
+        defaultSliceBitAndCheck<cisc0::Comparator::StandardOperations::Neq>();
     }
     void Core::encodeBits() {
-        getAddressRegister() = syn::encodeBits<RegisterValue, RegisterValue>(getAddressRegister(), getValueRegister(), getMaskRegister(), getShiftRegister());
+        getAddressRegister() = cisc0::encodeBits<RegisterValue, RegisterValue>(getAddressRegister(), getValueRegister(), getMaskRegister(), getShiftRegister());
     }
     void Core::decodeBits() {
         // connect the result of the logical operations alu to the
         // shifter alu then store the result in the value register
-        getValueRegister() = syn::decodeBits<RegisterValue, RegisterValue>(getAddressRegister(), getMaskRegister(), getShiftRegister());
+        getValueRegister() = cisc0::decodeBits<RegisterValue, RegisterValue>(getAddressRegister(), getMaskRegister(), getShiftRegister());
     }
 
 	RegisterValue& Core::registerValue(byte bank, byte offset) {
 		if (bank > 2 || offset > 7) {
-			throw syn::Problem("Illegal register value!");
+			throw cisc0::Problem("Illegal register value!");
 		} else {
 			if (bank == 0) {
 				return registerValue(offset);

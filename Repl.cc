@@ -1,6 +1,6 @@
 /*
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,13 +37,13 @@ extern "C" {
 
 int main(int argc, char* argv[]) {
 	// make sure this is a common io bus
-	syn::CLIPSIOController bus;
+	cisc0::CLIPSIOController bus;
 	auto mainEnv = bus.getRawEnvironment();
 	bus.initialize();
 	// install features here
-	syn::installExtensions(mainEnv);
-	syn::installMemoryBlockTypes(mainEnv);
-    syn::installExternalAddressAssemblers(mainEnv);
+	cisc0::installExtensions(mainEnv);
+	cisc0::installMemoryBlockTypes(mainEnv);
+    cisc0::installExternalAddressAssemblers(mainEnv);
 	cisc0::installCoreWrapper(mainEnv);
     iris::installCoreWrapper(mainEnv);
 	RerouteStdin(mainEnv, argc, argv);

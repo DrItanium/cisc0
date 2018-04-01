@@ -2,8 +2,8 @@
  * @file
  * External address wrapper class
  * @copyright
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ extern "C" {
 }
 #include "ClipsExtensions.h"
 
-namespace syn {
+namespace cisc0 {
 
 
 /**
@@ -62,14 +62,14 @@ struct ExternalAddressRegistrar {
         /**
          * Retrieve the index associated with the given environment
          * @param env the clips environment to check
-         * @throw syn::Problem the given type is not registered with the
+         * @throw cisc0::Problem the given type is not registered with the
          * provided environment.
          * @return the index of the target type in the given environment
          */
 		static unsigned int getExternalAddressId(void* env) {
 			auto found = _cache.find(env);
             if (found == _cache.end()) {
-                throw syn::Problem("unregistered external address type!");
+                throw cisc0::Problem("unregistered external address type!");
             }
             return found->second;
 		}
@@ -234,7 +234,7 @@ namespace WrappedNewCallBuilder {
             } else {
                 errorMessage(env, "NEW", 2, funcErrorPrefix, " no arguments should be provided for function new!");
             }
-        } catch (const syn::Problem& p) {
+        } catch (const cisc0::Problem& p) {
             CVSetBoolean(ret, false);
             std::stringstream s;
             s << "an exception was thrown: " << p.what();
@@ -314,7 +314,7 @@ const std::string& getFunctionPrefixNew() noexcept {
 template<typename T>
 bool badCallArgument(void* env, CLIPSValue* ret, int code, const std::string& msg) noexcept {
     CVSetBoolean(ret, false);
-    return syn::errorMessage(env, "CALL", code, getFunctionErrorPrefixCall<T>(), msg);
+    return cisc0::errorMessage(env, "CALL", code, getFunctionErrorPrefixCall<T>(), msg);
 }
 
 /**
@@ -340,7 +340,7 @@ class ExternalAddressWrapper {
         }
         static bool checkArgumentCount(void* env, CLIPSValuePtr ret, const std::string& operation, int inputArgCount) {
             auto aCount = baseArgumentIndex + inputArgCount;
-            if (!syn::hasCorrectArgCount(env, aCount)) {
+            if (!cisc0::hasCorrectArgCount(env, aCount)) {
                 return callErrorMessageCode3(env, ret, operation, " too many arguments provided!");
             }
             return true;
@@ -387,7 +387,7 @@ class ExternalAddressWrapper {
 			return ExternalAddressRegistrar<InternalType>::isOfType(env, ptr);
 		}
         static inline bool badCallArgument(void* env, CLIPSValue* ret, int code, const std::string& msg) noexcept {
-            return syn::badCallArgument<T>(env, ret, code, msg);
+            return cisc0::badCallArgument<T>(env, ret, code, msg);
         }
 
 
@@ -457,7 +457,7 @@ class ExternalAddressWrapper {
             return true;
         }
         static bool isExternalAddress(void* env, DataObjectPtr ret, DataObjectPtr value) noexcept {
-            if (!syn::isExternalAddress(value)) {
+            if (!cisc0::isExternalAddress(value)) {
                 return badCallArgument(env, ret, 1, "Function call expected an external address as the first argument!");
             }
             return true;

@@ -2,8 +2,8 @@
  * @file
  * Common arithmetic routines
  * @copyright
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 
 #include <functional>
 #include <climits>
-namespace syn {
+namespace cisc0 {
 
 /**
  * Retrieve the number of bits that a given type consumes. This is different
@@ -65,14 +65,14 @@ using OnDivideByZero = std::function<T()>;
 
 template<typename R>
 R whenDenominatorIsZero() {
-    throw syn::Problem("Denominator is zero!");
+    throw cisc0::Problem("Denominator is zero!");
     return static_cast<R>(0);
 }
 
 template<typename R>
 inline R defaultDenominatorCheck(OnDivideByZero<R> operation) {
     if (operation == nullptr) {
-        throw syn::Problem("Denominator is zero!");
+        throw cisc0::Problem("Denominator is zero!");
     } else {
         return operation();
     }
@@ -640,6 +640,6 @@ constexpr bool addressInRange<uint8>(uint8 capacity, uint8 address) noexcept {
     return address < capacity;
 }
 
-} // end namespace syn
+} // end namespace cisc0
 
 #endif // end SYN_BASE_ARITHMETIC_H__

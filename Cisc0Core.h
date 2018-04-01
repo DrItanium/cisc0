@@ -5,8 +5,8 @@
  * architecture. Registers are 32-bits wide and memory words are 16-bits wide.
  * This makes loading data much easier.
  * @copyright
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,8 +68,8 @@ namespace cisc0 {
      * @return the lower two bits of the bitmask expanded into a Word.
      */
 	constexpr Word lowerMask(byte bitmask) noexcept {
-		return syn::encodeUint16LE(syn::expandBit(syn::getBit<byte, 0>(bitmask)),
-									syn::expandBit(syn::getBit<byte, 1>(bitmask)));
+		return cisc0::encodeUint16LE(cisc0::expandBit(cisc0::getBit<byte, 0>(bitmask)),
+									cisc0::expandBit(cisc0::getBit<byte, 1>(bitmask)));
 	}
 
     /**
@@ -79,8 +79,8 @@ namespace cisc0 {
      * @return the upper two bits of the bitmask expanded into a Word.
      */
 	constexpr Word upperMask(byte bitmask) noexcept {
-		return syn::encodeUint16LE(syn::expandBit(syn::getBit<byte, 2>(bitmask)),
-									syn::expandBit(syn::getBit<byte, 3>(bitmask)));
+		return cisc0::encodeUint16LE(cisc0::expandBit(cisc0::getBit<byte, 2>(bitmask)),
+									cisc0::expandBit(cisc0::getBit<byte, 3>(bitmask)));
 	}
 
     /**
@@ -91,7 +91,7 @@ namespace cisc0 {
      * wide value.
      */
 	constexpr RegisterValue mask(byte bitmask) noexcept {
-		return syn::encodeUint32LE(lowerMask(bitmask), upperMask(bitmask));
+		return cisc0::encodeUint32LE(lowerMask(bitmask), upperMask(bitmask));
 	}
 
     /**
@@ -122,7 +122,7 @@ namespace cisc0 {
      * @return a register wide encoded value from the given bytes
      */
     constexpr RegisterValue encodeRegisterValue(byte a, byte b, byte c, byte d) noexcept {
-        return syn::encodeUint32LE(a, b, c, d);
+        return cisc0::encodeUint32LE(a, b, c, d);
     }
 
     /**
@@ -132,7 +132,7 @@ namespace cisc0 {
      * @return the word encoded from the supplied two halves
      */
     constexpr Word encodeWord(byte a, byte b) noexcept {
-        return syn::encodeUint16LE(a, b);
+        return cisc0::encodeUint16LE(a, b);
     }
 
     /**
@@ -141,7 +141,7 @@ namespace cisc0 {
      * @return the word that makes up the upper half of the register value
      */
     constexpr Word decodeUpperHalf(RegisterValue value) noexcept {
-        return syn::decodeBits<RegisterValue, Word, mask(0b1100), 16>(value);
+        return cisc0::decodeBits<RegisterValue, Word, mask(0b1100), 16>(value);
     }
 
     /**
@@ -150,7 +150,7 @@ namespace cisc0 {
      * @return the word that makes up the lower half of the register value
      */
     constexpr Word decodeLowerHalf(RegisterValue value) noexcept {
-        return syn::decodeBits<RegisterValue, Word, mask(0b0011), 0>(value);
+        return cisc0::decodeBits<RegisterValue, Word, mask(0b0011), 0>(value);
     }
 
     /**
@@ -160,7 +160,7 @@ namespace cisc0 {
      * @return the newly encoded register value
      */
     constexpr RegisterValue encodeUpperHalf(RegisterValue value, Word upperHalf) noexcept {
-        return syn::encodeBits<RegisterValue, Word, mask(0b1100), 16>(value, upperHalf);
+        return cisc0::encodeBits<RegisterValue, Word, mask(0b1100), 16>(value, upperHalf);
     }
     /**
      * Puts the given word value into the lower half of a register
@@ -169,7 +169,7 @@ namespace cisc0 {
      * @return the newly encoded register value
      */
     constexpr RegisterValue encodeLowerHalf(RegisterValue value, Word lowerHalf) noexcept {
-        return syn::encodeBits<RegisterValue, Word, mask(0b0011), 0>(value, lowerHalf);
+        return cisc0::encodeBits<RegisterValue, Word, mask(0b0011), 0>(value, lowerHalf);
     }
 
     constexpr RegisterValue encodeRegisterValue(Word upper, Word lower) noexcept {
@@ -242,7 +242,7 @@ namespace cisc0 {
      * @return the ascii value of the provided input as a Word
      */
 	constexpr Word hexToText(byte input) noexcept {
-		switch(syn::decodeBits<byte, byte, 0x0F, 0>(input)) {
+		switch(cisc0::decodeBits<byte, byte, 0x0F, 0>(input)) {
 			case 0x1: return static_cast<Word>('1');
 			case 0x2: return static_cast<Word>('2');
 			case 0x3: return static_cast<Word>('3');
@@ -266,15 +266,15 @@ namespace cisc0 {
 
 	template<RegisterValue mask, RegisterValue shift>
 	constexpr Word extractHexAndConvertToText(RegisterValue value) noexcept {
-		return hexToText(syn::decodeBits<RegisterValue, byte, mask, shift>(value));
+		return hexToText(cisc0::decodeBits<RegisterValue, byte, mask, shift>(value));
 	}
 
-    template<syn::Comparator::StandardOperations op>
+    template<cisc0::Comparator::StandardOperations op>
     constexpr RegisterValue sliceBitAndCheck(RegisterValue a, RegisterValue b) noexcept {
         using T = RegisterValue;
-        return syn::Comparator::performOperation<op, T>(
-                syn::ALU::performOperation<translate(LogicalOps::And), T>(
-                    syn::ALU::performOperation<ALUOperation::ShiftRight, T>(
+        return cisc0::Comparator::performOperation<op, T>(
+                cisc0::ALU::performOperation<translate(LogicalOps::And), T>(
+                    cisc0::ALU::performOperation<ALUOperation::ShiftRight, T>(
                         a,
                         b), 0x1), 1);
     }
@@ -289,15 +289,15 @@ namespace cisc0 {
      * @tparam R the type of the register
      */
 	template<byte bankCount, typename R>
-	class BankedCore : public syn::ClipsCore<Word, R> {
+	class BankedCore : public cisc0::ClipsCore<Word, R> {
 		static_assert(bankCount <= ArchitectureConstants::MaxRegisterBanks, "Too many register banks specified!");
 		public:
 			using RegisterType = R;
-			using RegisterFile = syn::FixedSizeLoadStoreUnit<RegisterType, byte, ArchitectureConstants::RegistersPerBank * bankCount>;
-			using Parent = syn::ClipsCore<Word, RegisterType>; 
+			using RegisterFile = cisc0::FixedSizeLoadStoreUnit<RegisterType, byte, ArchitectureConstants::RegistersPerBank * bankCount>;
+			using Parent = cisc0::ClipsCore<Word, RegisterType>; 
 			static constexpr auto targetBankCount = bankCount;
 		public:
-			BankedCore(syn::CLIPSIOController& bus) noexcept : Parent(bus) { }
+			BankedCore(cisc0::CLIPSIOController& bus) noexcept : Parent(bus) { }
 			virtual ~BankedCore() noexcept { }
 		protected:
             virtual void storeWord(RegisterType address, Word value) {
@@ -322,7 +322,7 @@ namespace cisc0 {
              * @param offset the index of the register within the given bank
              * @return a Register reference to the described register value if
              * it is there
-             * @throw syn::Problem register in the given bank and offset does
+             * @throw cisc0::Problem register in the given bank and offset does
              * not exist or can't be accessed.
              */
 			virtual RegisterType& registerValue(byte bank, byte offset) = 0;
@@ -402,14 +402,14 @@ namespace cisc0 {
 				// 2) Parse each word as an ascii character and convert it into a 4 bit quantity
 				// 3) Place that 4bit quantity into the appropriate position in value
 				auto addr = getAddressRegister();
-				auto value = syn::encodeBits<RegisterValue, byte, 0x0000000F, 0>(0, convertTextToHex(loadWord(addr)));
-				value = syn::encodeBits<RegisterValue, byte, 0x000000F0, 4>(value, convertTextToHex(loadWord(addr, 1)));
-				value = syn::encodeBits<RegisterValue, byte, 0x00000F00, 8>(value, convertTextToHex(loadWord(addr, 2)));
-				value = syn::encodeBits<RegisterValue, byte, 0x0000F000, 12>(value, convertTextToHex(loadWord(addr, 3)));
-				value = syn::encodeBits<RegisterValue, byte, 0x000F0000, 16>(value, convertTextToHex(loadWord(addr, 4)));
-				value = syn::encodeBits<RegisterValue, byte, 0x00F00000, 20>(value, convertTextToHex(loadWord(addr, 5)));
-				value = syn::encodeBits<RegisterValue, byte, 0x0F000000, 24>(value, convertTextToHex(loadWord(addr, 6)));
-				getValueRegister() = syn::encodeBits<RegisterValue, byte, 0xF0000000, 28>(value, convertTextToHex(loadWord(addr, 7)));
+				auto value = cisc0::encodeBits<RegisterValue, byte, 0x0000000F, 0>(0, convertTextToHex(loadWord(addr)));
+				value = cisc0::encodeBits<RegisterValue, byte, 0x000000F0, 4>(value, convertTextToHex(loadWord(addr, 1)));
+				value = cisc0::encodeBits<RegisterValue, byte, 0x00000F00, 8>(value, convertTextToHex(loadWord(addr, 2)));
+				value = cisc0::encodeBits<RegisterValue, byte, 0x0000F000, 12>(value, convertTextToHex(loadWord(addr, 3)));
+				value = cisc0::encodeBits<RegisterValue, byte, 0x000F0000, 16>(value, convertTextToHex(loadWord(addr, 4)));
+				value = cisc0::encodeBits<RegisterValue, byte, 0x00F00000, 20>(value, convertTextToHex(loadWord(addr, 5)));
+				value = cisc0::encodeBits<RegisterValue, byte, 0x0F000000, 24>(value, convertTextToHex(loadWord(addr, 6)));
+				getValueRegister() = cisc0::encodeBits<RegisterValue, byte, 0xF0000000, 28>(value, convertTextToHex(loadWord(addr, 7)));
 			}
             virtual void registerToHex8() {
 				auto addr = getAddressRegister();
@@ -438,7 +438,7 @@ namespace cisc0 {
 						unsetBit();
 						break;
 					default:
-						throw syn::Problem("Illegal complex encoding operation defined!");
+						throw cisc0::Problem("Illegal complex encoding operation defined!");
 				}
 			}
             virtual void setBit() = 0;
@@ -469,10 +469,10 @@ namespace cisc0 {
      */
 	class Core : public BankedCore<2, RegisterValue>, public ConditionRegisterImplementation {
         public:
-            using RegisterFile = syn::FixedSizeLoadStoreUnit<RegisterValue, byte, ArchitectureConstants::RegisterCount>;
+            using RegisterFile = cisc0::FixedSizeLoadStoreUnit<RegisterValue, byte, ArchitectureConstants::RegisterCount>;
 			using Parent = BankedCore<2, RegisterValue>;
 		public:
-			Core(syn::CLIPSIOController& bus) noexcept;
+			Core(cisc0::CLIPSIOController& bus) noexcept;
 			virtual ~Core() noexcept { }
 			virtual bool handleOperation(void* env, CLIPSValue* ret) override;
             virtual void initialize() override;
@@ -492,7 +492,7 @@ namespace cisc0 {
             virtual RegisterValue  getShiftRegister() noexcept override;
             virtual RegisterValue  getFieldRegister() noexcept override;
         protected:
-            template<syn::Comparator::StandardOperations op>
+            template<cisc0::Comparator::StandardOperations op>
             inline void defaultSliceBitAndCheck() {
                 getConditionRegister() = sliceBitAndCheck<op>(getAddressRegister(), getFieldRegister());
             }

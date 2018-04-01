@@ -2,8 +2,8 @@
  * @file
  * Cisc0 architecture model 1 core
  * @copyright
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -135,7 +135,7 @@ namespace cisc0 {
                     RegisterValue& _ip;
             };
 		public:
-			CoreModel1(syn::CLIPSIOController& bus) noexcept;
+			CoreModel1(cisc0::CLIPSIOController& bus) noexcept;
 			virtual ~CoreModel1() noexcept;
 			virtual void initialize() override;
 			virtual bool cycle() override;

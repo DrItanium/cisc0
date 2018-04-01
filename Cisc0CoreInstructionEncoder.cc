@@ -2,8 +2,8 @@
  * @file
  * routines for constructing numeric equivalents of described instructions
  * @copyright
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,16 +37,16 @@
 
 namespace cisc0 {
 	constexpr Word lowerMask(byte bitmask) noexcept {
-		return syn::encodeUint16LE(syn::expandBit(syn::getBit<byte, 0>(bitmask)),
-									syn::expandBit(syn::getBit<byte, 1>(bitmask)));
+		return cisc0::encodeUint16LE(cisc0::expandBit(cisc0::getBit<byte, 0>(bitmask)),
+									cisc0::expandBit(cisc0::getBit<byte, 1>(bitmask)));
 	}
 	constexpr Word upperMask(byte bitmask) noexcept {
-		return syn::encodeUint16LE(syn::expandBit(syn::getBit<byte, 2>(bitmask)),
-									syn::expandBit(syn::getBit<byte, 3>(bitmask)));
+		return cisc0::encodeUint16LE(cisc0::expandBit(cisc0::getBit<byte, 2>(bitmask)),
+									cisc0::expandBit(cisc0::getBit<byte, 3>(bitmask)));
 	}
 
 	constexpr RegisterValue mask(byte bitmask) noexcept {
-		return syn::encodeUint32LE(lowerMask(bitmask), upperMask(bitmask));
+		return cisc0::encodeUint32LE(lowerMask(bitmask), upperMask(bitmask));
 	}
 
 	constexpr bool readLower(byte bitmask) noexcept {
@@ -181,7 +181,7 @@ namespace cisc0 {
 			case ComplexSubTypes::Encoding:
 				return encodeComplexEncoding(first);
 			default:
-				throw syn::Problem("Undefined or unimplemented complex sub type!");
+				throw cisc0::Problem("Undefined or unimplemented complex sub type!");
 		}
 	}
 	InstructionEncoder::Encoding InstructionEncoder::encodeComplexEncoding(Word value) const {
@@ -223,7 +223,7 @@ namespace cisc0 {
 
         auto result = dispatchTable.find(_type);
         if (result == dispatchTable.end()) {
-            throw syn::Problem("Illegal type to encode!");
+            throw cisc0::Problem("Illegal type to encode!");
         } else {
             return result->second(this);
         }

@@ -1,9 +1,9 @@
 /**
  * @file
- * Basic routines, classes, and concepts used throughout syn.
+ * Basic routines, classes, and concepts used throughout cisc0.
  * @copyright
- * syn
- * Copyright (c) 2013-2017, Joshua Scoggins and Contributors
+ * cisc0
+ * Copyright (c) 2013-2018, Joshua Scoggins and Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@
 #include "Problem.h"
 #include <memory>
 
-namespace syn {
+namespace cisc0 {
 
     /**
      * Describes the upper and lower halves of a type
@@ -357,7 +357,7 @@ constexpr byte expandBit(bool value) noexcept {
 
 template<typename T, T index>
 constexpr T setBit(T value, bool bit) noexcept {
-    return syn::encodeBits<T, bool, singleBitmaskValue<T, index>, index>(value, bit);
+    return cisc0::encodeBits<T, bool, singleBitmaskValue<T, index>, index>(value, bit);
 }
 
 template<typename T>
@@ -382,14 +382,14 @@ constexpr typename UpperLowerPair::TypeData<T>::HalfType getUpperHalf(T value) n
     using InputType = T;
     using DataPair = UpperLowerPair::TypeData<T>;
     using OutputType = typename DataPair::HalfType;
-    return syn::decodeBits<InputType, OutputType, UpperLowerPair::upperMask<T>, UpperLowerPair::shiftCount<T>>(value);
+    return cisc0::decodeBits<InputType, OutputType, UpperLowerPair::upperMask<T>, UpperLowerPair::shiftCount<T>>(value);
 }
 template<typename T>
 constexpr typename UpperLowerPair::TypeData<T>::HalfType getLowerHalf(T value) noexcept {
     using InputType = T;
     using DataPair = UpperLowerPair::TypeData<T>;
     using OutputType = typename DataPair::HalfType;
-    return syn::decodeBits<InputType, OutputType, UpperLowerPair::lowerMask<T>, 0>(value);
+    return cisc0::decodeBits<InputType, OutputType, UpperLowerPair::lowerMask<T>, 0>(value);
 }
 template<> constexpr byte getLowerHalf<uint16>(uint16 value) noexcept { return static_cast<byte>(value); }
 template<> constexpr uint16 getLowerHalf<uint32>(uint32 value) noexcept { return static_cast<uint16>(value); }
@@ -398,12 +398,12 @@ template<> constexpr uint32 getLowerHalf<uint64>(uint64 value) noexcept { return
 template<typename T>
 constexpr T setLowerHalf(T value, typename UpperLowerPair::TypeData<T>::HalfType lower) noexcept {
     using DataPair = UpperLowerPair::TypeData<T>;
-    return syn::encodeBits<T, typename DataPair::HalfType, UpperLowerPair::lowerMask<T>, 0>(value, lower);
+    return cisc0::encodeBits<T, typename DataPair::HalfType, UpperLowerPair::lowerMask<T>, 0>(value, lower);
 }
 template<typename T>
 constexpr T setUpperHalf(T value, typename UpperLowerPair::TypeData<T>::HalfType upper) noexcept {
     using DataPair = UpperLowerPair::TypeData<T>;
-    return syn::encodeBits<T, typename DataPair::HalfType, UpperLowerPair::lowerMask<T>, UpperLowerPair::shiftCount<T>>(value, upper);
+    return cisc0::encodeBits<T, typename DataPair::HalfType, UpperLowerPair::lowerMask<T>, UpperLowerPair::shiftCount<T>>(value, upper);
 }
 
 
@@ -497,7 +497,7 @@ constexpr bool isErrorState(T op) noexcept {
 template<typename T>
 void throwOnErrorState(T value, const std::string& msg) {
     if (isErrorState<T>(value)) {
-        throw syn::Problem(msg);
+        throw cisc0::Problem(msg);
     }
 }
 
