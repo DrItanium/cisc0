@@ -724,6 +724,11 @@ namespace cisc0 {
 		value.extract(first);
 	}
 
+	void Core::run() {
+		while (_keepExecuting) {
+			invoke(decode());
+		}
+	}
 
 } // end namespace cisc0
 

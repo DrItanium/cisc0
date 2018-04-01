@@ -506,6 +506,7 @@ namespace cisc0 {
 			void pushParameterAddress(Address value) noexcept;
 			void pushSubroutineWord(MemoryWord value) noexcept;
 			void pushSubroutineAddress(Address value) noexcept;
+			void run();
 		private:
 			MemoryWord loadWord(Address addr);
 			void storeWord(Address addr, MemoryWord value);
