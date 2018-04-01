@@ -46,11 +46,11 @@ options:
 	@${CXX} ${CXXFLAGS} -c $< -o $@
 
 ${SIMULATOR_BINARY}: ${SIMULATOR_OBJECTS}
-	@echo LD $<
+	@echo LD $@
 	@${CXX} ${LDFLAGS} -o ${SIMULATOR_BINARY} ${SIMULATOR_OBJECTS}
 
 ${LINKER_BINARY}: ${LINKER_OBJECTS}
-	@echo LD $<
+	@echo LD $@
 	@${CXX} ${LDFLAGS} -o ${LINKER_BINARY} ${LINKER_OBJECTS}
 
 clean:
