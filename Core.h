@@ -587,6 +587,19 @@ namespace cisc0 {
 				value = extractImmediateBit(first) ? ImmediateType() : RegisterType();
 				std::visit([this, first](auto&& value) { decode(first, value); }, value);
 			}
+			template<typename T>
+			void decodeImmediateValue(MemoryWord first, T& value) {
+				auto second = MemoryWord(0);
+				auto third = MemoryWord(0);
+				value.extractBitmask(first);
+				if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
+					second = nextWord();
+				}
+				if (auto upperMask = value.getUpperMask(); upperMask != 0) {
+					third = nextWord();
+				}
+				value.extract(first, second, third);
+			}
 		private:
 			Address _capacity;
 			std::unique_ptr<Register[]> _registers;

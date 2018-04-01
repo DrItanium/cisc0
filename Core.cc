@@ -608,23 +608,39 @@ namespace cisc0 {
 	}
 
 	void Core::decode(MemoryWord first, Core::Memory& value) {
-		
+		auto target = extractStyle<Core::MemoryStyle>(first, 0b110000, 4);
+		using T = decltype(target);
+		switch (target) {
+			case T::Push:
+				value = Core::MemoryPush();
+				break;
+			case T::Pop:
+				value = Core::MemoryPop();
+				break;
+			case T::Load:
+				value = Core::MemoryLoad();
+				break;
+			case T::Store:
+				value = Core::MemoryStore();
+				break;
+		}
+		std::visit([this, first](auto&& x) { decode(first, x); }, value);
 	}
 
 	void Core::decode(MemoryWord first, Core::MemoryPop& value) {
-
+		value.extract(first);
 	}
 
 	void Core::decode(MemoryWord first, Core::MemoryPush& value) {
-
+		value.extract(first);
 	}
 
 	void Core::decode(MemoryWord first, Core::MemoryStore& value) {
-
+		value.extract(first);
 	}
 
 	void Core::decode(MemoryWord first, Core::MemoryLoad& value) {
-
+		value.extract(first);
 	}
 
 	void Core::decode(MemoryWord first, Core::Branch& value) {
@@ -660,26 +676,11 @@ namespace cisc0 {
 	}
 
 	void Core::decode(MemoryWord first, Core::LogicalImmediate& value) {
-		value.extractBitmask(first);
-		auto second = MemoryWord(0);
-		auto third = MemoryWord(0);
-		value.extractBitmask(first);
-		if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
-			second = nextWord();
-		}
-		if (auto upperMask = value.getUpperMask(); upperMask != 0) {
-			third = nextWord();
-		}
-		value.extract(first, second, third);
+		decodeImmediateValue(first, value);
 	}
 
 	void Core::decode(MemoryWord first, Core::Arithmetic& value) {
-		if (extractImmediateBit(first)) {
-			value = Core::ArithmeticImmediate();
-		} else {
-			value = Core::ArithmeticRegister();
-		}
-		std::visit([this, first](auto&& value) { decode(first, value); }, value);
+		decodeOnImmediateBit<decltype(value), Core::ArithmeticImmediate, Core::ArithmeticRegister>(first, value);
 	}
 
 	void Core::decode(MemoryWord first, Core::ArithmeticRegister& value) {
@@ -687,17 +688,7 @@ namespace cisc0 {
 	}
 
 	void Core::decode(MemoryWord first, Core::ArithmeticImmediate& value) {
-		value.extractBitmask(first);
-		auto second = MemoryWord(0);
-		auto third = MemoryWord(0);
-		value.extractBitmask(first);
-		if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
-			second = nextWord();
-		}
-		if (auto upperMask = value.getUpperMask(); upperMask != 0) {
-			third = nextWord();
-		}
-		value.extract(first, second, third);
+		decodeImmediateValue(first, value);
 	}
 
 	void Core::decode(MemoryWord first, Core::Compare& value) {
@@ -722,16 +713,7 @@ namespace cisc0 {
 	}
 
 	void Core::decode(MemoryWord first, Core::CompareImmediate& value) {
-		auto second = MemoryWord(0);
-		auto third = MemoryWord(0);
-		value.extractBitmask(first);
-		if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
-			second = nextWord();
-		}
-		if (auto upperMask = value.getUpperMask(); upperMask != 0) {
-			third = nextWord();
-		}
-		value.extract(first, second, third);
+		decodeImmediateValue(first, value);
 	}
 
 	void Core::decode(MemoryWord first, Core::CompareMoveToCondition& value) {
