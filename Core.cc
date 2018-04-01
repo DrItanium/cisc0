@@ -529,6 +529,218 @@ namespace cisc0 {
 	void Core::invoke(const Core::Operation& value) {
 		variantInvoke(value);
 	}
+	constexpr Core::OperationCode getOpcode(MemoryWord input) noexcept {
+		return Core::OperationCode(input & 0b1111);
+	}
+	Core::Operation Core::decode() {
+		Core::Operation out;
+		auto first = nextWord();
+		using T = Core::OperationCode;
+		switch (getOpcode(first)) {
+			case T::Swap:
+				out = Swap();
+				break;
+			case T::Shift:
+				out = Shift();
+				break;
+			case T::Memory:
+				out = Memory();
+				break;
+			case T::Branch:
+				out = Branch();
+				break;
+			case T::Logical:
+				out = Logical();
+				break;
+			case T::Move:
+				out = Move();
+				break;
+			case T::Arithmetic:
+				out = Arithmetic();
+				break;
+			case T::Set:
+				out = Set();
+				break;
+			case T::Misc:
+				out = Misc();
+				break;
+			case T::Compare:
+				out = Compare();
+				break;
+			default:
+				throw Problem("Illegal Opcode!");
+		}
+		std::visit([this, first](auto&& value) { decode(first, value); }, out);
+		return out;
+	}
+
+	void Core::decode(MemoryWord first, Core::Return& value) { }
+
+	void Core::decode(MemoryWord first, Core::Terminate& value) { }
+
+	constexpr Core::MiscStyle getMiscStyle(MemoryWord word) noexcept {
+		return Core::MiscStyle((0b11110000 & word) >> 4);
+	}
+	void Core::decode(MemoryWord first, Core::Misc& value) {
+		using T = Core::MiscStyle;
+		switch (getMiscStyle(first)) {
+			case T::Terminate:
+				value = Core::Terminate();
+				break;
+			case T::Return:
+				value = Core::Return();
+				break;
+			default:
+				throw Problem("Undefined or unimplemented misc operation!");
+		}
+	}
+
+	void Core::decode(MemoryWord first, Core::Swap& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::Set& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::Move& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::Memory& value) {
+		
+	}
+
+	void Core::decode(MemoryWord first, Core::MemoryPop& value) {
+
+	}
+
+	void Core::decode(MemoryWord first, Core::MemoryPush& value) {
+
+	}
+
+	void Core::decode(MemoryWord first, Core::MemoryStore& value) {
+
+	}
+
+	void Core::decode(MemoryWord first, Core::MemoryLoad& value) {
+
+	}
+
+	void Core::decode(MemoryWord first, Core::Branch& value) {
+		decodeOnImmediateBit<decltype(value), Core::BranchImmediate, Core::BranchRegister>(first, value);
+	}
+
+	void Core::decode(MemoryWord first, Core::BranchRegister& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::BranchImmediate& value) {
+		value.extract(first, nextWord(), nextWord());
+	}
+
+	void Core::decode(MemoryWord first, Core::Shift& value) {
+		decodeOnImmediateBit<decltype(value), Core::ShiftImmediate, Core::ShiftRegister>(first, value);
+	}
+
+	void Core::decode(MemoryWord first, Core::ShiftRegister& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::ShiftImmediate& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::Logical& value) {
+		decodeOnImmediateBit<decltype(value), Core::LogicalImmediate, Core::LogicalRegister>(first, value);
+	}
+
+	void Core::decode(MemoryWord first, Core::LogicalRegister& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::LogicalImmediate& value) {
+		value.extractBitmask(first);
+		auto second = MemoryWord(0);
+		auto third = MemoryWord(0);
+		value.extractBitmask(first);
+		if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
+			second = nextWord();
+		}
+		if (auto upperMask = value.getUpperMask(); upperMask != 0) {
+			third = nextWord();
+		}
+		value.extract(first, second, third);
+	}
+
+	void Core::decode(MemoryWord first, Core::Arithmetic& value) {
+		if (extractImmediateBit(first)) {
+			value = Core::ArithmeticImmediate();
+		} else {
+			value = Core::ArithmeticRegister();
+		}
+		std::visit([this, first](auto&& value) { decode(first, value); }, value);
+	}
+
+	void Core::decode(MemoryWord first, Core::ArithmeticRegister& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::ArithmeticImmediate& value) {
+		value.extractBitmask(first);
+		auto second = MemoryWord(0);
+		auto third = MemoryWord(0);
+		value.extractBitmask(first);
+		if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
+			second = nextWord();
+		}
+		if (auto upperMask = value.getUpperMask(); upperMask != 0) {
+			third = nextWord();
+		}
+		value.extract(first, second, third);
+	}
+
+	void Core::decode(MemoryWord first, Core::Compare& value) {
+		auto style = Core::extractStyle<Core::CompareStyle>(first);
+		using T = decltype(style);
+		switch (style) {
+			case T::MoveToCondition:
+				value = CompareMoveToCondition();
+				break;
+			case T::MoveFromCondition:
+				value = CompareMoveFromCondition();
+				break;
+			default: 
+				value = extractImmediateBit() ? CompareImmediate() : CompareRegister();
+				break; 
+		}
+		std::visit([this, first](auto&& value) { decode(first, value); }, value);
+	}
+
+	void Core::decode(MemoryWord first, Core::CompareRegister& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::CompareImmediate& value) {
+		auto second = MemoryWord(0);
+		auto third = MemoryWord(0);
+		value.extractBitmask(first);
+		if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
+			second = nextWord();
+		}
+		if (auto upperMask = value.getUpperMask(); upperMask != 0) {
+			third = nextWord();
+		}
+		value.extract(first, second, third);
+	}
+
+	void Core::decode(MemoryWord first, Core::CompareMoveToCondition& value) {
+		value.extract(first);
+	}
+
+	void Core::decode(MemoryWord first, Core::CompareMoveFromCondition& value) {
+		value.extract(first);
+	}
 
 
 } // end namespace cisc0

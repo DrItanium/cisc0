@@ -46,6 +46,9 @@ namespace cisc0 {
 	using MemoryWord = HalfAddress;
 	using RegisterIndex = byte;
 	using Bitmask = byte;
+	constexpr bool extractImmediateBit(MemoryWord word) noexcept {
+		return ((0b0000'0000'0001'0000 & word) >> 4) != 0;
+	}
 	class Register {
 		public:
 			Register(Address value = 0, Address mask = 0xFFFFFFFF) : _address(value), _mask(mask) {
@@ -236,6 +239,10 @@ namespace cisc0 {
 					}
 
 			};
+			template<typename T>
+			static constexpr T extractStyle(MemoryWord value, MemoryWord mask = 0b00000000'11100000, byte shift = 5) {
+				return T((value & mask) >> shift);
+			}
 			template<typename S, MemoryWord mask, byte shift>
 			struct HasStyle {
 					static_assert(std::is_enum_v<S>, "HasStyle must be provided with an enum!");
@@ -575,6 +582,11 @@ namespace cisc0 {
 			void decode(MemoryWord first, CompareImmediate& value);
 			void decode(MemoryWord first, CompareMoveToCondition& value);
 			void decode(MemoryWord first, CompareMoveFromCondition& value);
+			template<typename T, typename ImmediateType, typename RegisterType>
+			void decodeOnImmediateBit(MemoryWord first, T& value) {
+				value = extractImmediateBit(first) ? ImmediateType() : RegisterType();
+				std::visit([this, first](auto&& value) { decode(first, value); }, value);
+			}
 		private:
 			Address _capacity;
 			std::unique_ptr<Register[]> _registers;
