@@ -1,0 +1,18 @@
+#!/bin/bash
+function usage {
+    echo 
+    echo "asmcisc0 <input-file> <output-file>"
+    echo
+}
+function leave {
+    exit 1
+}
+if [ -z "$1" ] || [ -z "$2" ] ; then
+    usage
+    leave
+fi
+SOURCE="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOT=$SOURCE
+INPUT_FILE=$1
+OUTPUT_FILE=$2
+echo " \" $INPUT_FILE\" \" $OUTPUT_FILE\" assemble bye " | $ROOT/forth $ROOT/asmcisc0.fs 
