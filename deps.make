@@ -1,1 +1,3 @@
-Core.o: Core.cc Core.h Device.h
+Core.o: Core.cc Core.h Problem.h
+Linker.o: Linker.cc Core.h Problem.h
+Simulator.o: Simulator.cc Core.h
