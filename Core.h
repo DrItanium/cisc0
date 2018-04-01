@@ -412,8 +412,72 @@ namespace cisc0 {
 				}
 			};
 			using Misc = std::variant<Return, Terminate>;
+
+			using Operation = std::variant<Compare, Arithmetic, Logical, Shift, Branch, Memory, Move, Set, Swap, Misc>;
 		public:
-			
+			static constexpr Address defaultMemoryCapacity = 0xFFFFFF + 1;
+			Core(Address memoryCapacity = defaultMemoryCapacity);
+			void storeMemory(Address addr, MemoryWord value);
+		private:
+			template<typename T>
+			void variantInvoke(const T& value) {
+				std::visit([this](auto&& x) { invoke(x); }, value);
+			}
+			MemoryWord nextWord();
+			void invoke(const Return& value);
+			void invoke(const Terminate& value);
+			void invoke(const Misc& value);
+			void invoke(const Swap& value);
+			void invoke(const Set& value);
+			void invoke(const Move& value);
+			void invoke(const Memory& value);
+			void invoke(const MemoryPop& value);
+			void invoke(const MemoryPush& value);
+			void invoke(const MemoryStore& value);
+			void invoke(const MemoryLoad& value);
+			void invoke(const Branch& value);
+			void invoke(const BranchRegister& value);
+			void invoke(const BranchImmediate& value);
+			void invoke(const Shift& value);
+			void invoke(const ShiftRegister& value);
+			void invoke(const ShiftImmediate& value);
+			void invoke(const Logical& value);
+			void invoke(const LogicalRegister& value);
+			void invoke(const LogicalImmediate& value);
+			void invoke(const Arithmetic& value);
+			void invoke(const ArithmeticRegister& value);
+			void invoke(const ArithmeticImmediate& value);
+			void invoke(const Compare& value);
+			void invoke(const CompareRegister& value);
+			void invoke(const CompareImmediate& value);
+			void invoke(const Operation& value);
+			Operation decode();
+			void decode(MemoryWord first, Return& value);
+			void decode(MemoryWord first, Terminate& value);
+			void decode(MemoryWord first, Misc& value);
+			void decode(MemoryWord first, Swap& value);
+			void decode(MemoryWord first, Set& value);
+			void decode(MemoryWord first, Move& value);
+			void decode(MemoryWord first, Memory& value);
+			void decode(MemoryWord first, MemoryPop& value);
+			void decode(MemoryWord first, MemoryPush& value);
+			void decode(MemoryWord first, MemoryStore& value);
+			void decode(MemoryWord first, MemoryLoad& value);
+			void decode(MemoryWord first, Branch& value);
+			void decode(MemoryWord first, BranchRegister& value);
+			void decode(MemoryWord first, BranchImmediate& value);
+			void decode(MemoryWord first, Shift& value);
+			void decode(MemoryWord first, ShiftRegister& value);
+			void decode(MemoryWord first, ShiftImmediate& value);
+			void decode(MemoryWord first, Logical& value);
+			void decode(MemoryWord first, LogicalRegister& value);
+			void decode(MemoryWord first, LogicalImmediate& value);
+			void decode(MemoryWord first, Arithmetic& value);
+			void decode(MemoryWord first, ArithmeticRegister& value);
+			void decode(MemoryWord first, ArithmeticImmediate& value);
+			void decode(MemoryWord first, Compare& value);
+			void decode(MemoryWord first, CompareRegister& value);
+			void decode(MemoryWord first, CompareImmediate& value);
 	};
 } // end namespace cisc0
 #endif

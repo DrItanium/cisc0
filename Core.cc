@@ -29,12 +29,115 @@
 
 #include "Core.h"
 
-namespace syn {
-
-void Core::run() {
-	while(execute) {
-		execute = cycle();
-	}
+namespace cisc0 {
+	void Core::invoke(const Core::Return& value) {	
+	
 }
+
+	void Core::invoke(const Core::Terminate& value) {	
+	
+}
+
+	void Core::invoke(const Core::Misc& value) {	
+	
+}
+
+	void Core::invoke(const Core::Swap& value) {	
+	
+}
+
+	void Core::invoke(const Core::Set& value) {	
+	
+}
+
+	void Core::invoke(const Core::Move& value) {	
+	
+}
+
+	void Core::invoke(const Core::Memory& value) {	
+	
+}
+
+	void Core::invoke(const Core::MemoryPop& value) {	
+	
+}
+
+	void Core::invoke(const Core::MemoryPush& value) {	
+	
+}
+
+	void Core::invoke(const Core::MemoryStore& value) {	
+	
+}
+
+	void Core::invoke(const Core::MemoryLoad& value) {	
+	
+}
+
+	void Core::invoke(const Core::Branch& value) {	
+	
+}
+
+	void Core::invoke(const Core::BranchRegister& value) {	
+	
+}
+
+	void Core::invoke(const Core::BranchImmediate& value) {	
+	
+}
+
+	void Core::invoke(const Core::Shift& value) {	
+	
+}
+
+	void Core::invoke(const Core::ShiftRegister& value) {	
+	
+}
+
+	void Core::invoke(const Core::ShiftImmediate& value) {	
+	
+}
+
+	void Core::invoke(const Core::Logical& value) {	
+	
+}
+
+	void Core::invoke(const Core::LogicalRegister& value) {	
+	
+}
+
+	void Core::invoke(const Core::LogicalImmediate& value) {	
+	
+}
+
+	void Core::invoke(const Core::Arithmetic& value) {	
+	
+}
+
+	void Core::invoke(const Core::ArithmeticRegister& value) {	
+	
+}
+
+	void Core::invoke(const Core::ArithmeticImmediate& value) {	
+	
+}
+
+	void Core::invoke(const Core::Compare& value) {	
+	
+}
+
+	void Core::invoke(const Core::CompareRegister& value) {	
+	
+}
+
+	void Core::invoke(const Core::CompareImmediate& value) {	
+	
+}
+
+	void Core::invoke(const Core::Operation& value) {	
+	
+}
+
+
 } // end namespace syn
 
