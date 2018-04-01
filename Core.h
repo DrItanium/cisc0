@@ -46,23 +46,34 @@ namespace cisc0 {
 	using MemoryWord = HalfAddress;
 	using RegisterIndex = byte;
 	using Bitmask = byte;
-	union Register {
+	class Register {
 		public:
-			Register(Address value = 0) : _address(value) { }
-			Register(Integer value) : _integer(value) { }
-			Register(const Register& other) : _address(other._address) { }
+			Register(Address value = 0, Address mask = 0xFFFFFFFF) : _address(value), _mask(mask) {
+				maskContents();
+			}
+			Register(Integer value, Address mask = 0xFFFFFFFF) : _integer(value), _mask(mask) {
+				maskContents();
+			}
+			Register(const Register& other) : _address(other._address), _mask(other._mask) { }
 			Address getAddress() const noexcept { return _address; }
 			Integer getInteger() const noexcept { return _integer; }
-			void setAddress(Address value) noexcept { _address = value; }
-			void setInteger(Integer value) noexcept { _integer = value; }
 			bool getTruth() const noexcept { return _address != 0; }
-			void increment(Address mask = 0xFFFFFFFF, Address incrementValue = 1) noexcept;
-			void decrement(Address mask = 0xFFFFFFFF, Address decrementValue = 1) noexcept;
+			void setAddress(Address value) noexcept;
+			void setInteger(Integer value) noexcept;
+			void increment(Address incrementValue = 1) noexcept;
+			void decrement(Address decrementValue = 1) noexcept;
 			MemoryWord getUpperHalf() const noexcept { return MemoryWord((_address & 0xFFFF0000) >> 16); }
 			MemoryWord getLowerHalf() const noexcept { return MemoryWord((_address & 0x0000FFFF)); }
+			void setMask(Address mask) noexcept;
+			Address getMask() const noexcept { return _mask; }
 		private:
-			Address _address;
-			Integer _integer;
+			void maskContents() noexcept;
+		private:
+			union {
+				Address _address;
+				Integer _integer;
+			};
+			Address _mask;
 	};
 	class Core {
 		public:
@@ -467,6 +478,10 @@ namespace cisc0 {
 			static constexpr Address defaultMemoryCapacity = 0xFFFFFF + 1;
 			Core(Address memoryCapacity = defaultMemoryCapacity);
 			void storeMemory(Address addr, MemoryWord value);
+			Address popSubroutineAddress() noexcept;
+			MemoryWord popSubroutineWord() noexcept;
+			MemoryWord popParameterWord() noexcept;
+			Address popParameterAddress() noexcept;
 		private:
 			MemoryWord loadWord(Address addr);
 			void storeWord(Address addr, MemoryWord value);

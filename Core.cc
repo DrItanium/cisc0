@@ -31,14 +31,30 @@
 #include "Problem.h"
 
 namespace cisc0 {
-	void Register::increment(Address mask, Address incrementValue) noexcept {
+	void Register::increment(Address incrementValue) noexcept {
 		_address += incrementValue;
-		_address &= mask;
+		maskContents();
 	}
-	void Register::decrement(Address mask, Address decrementValue) noexcept {
+	void Register::decrement(Address decrementValue) noexcept {
 		_address -= decrementValue;
-		_address &= mask;
+		maskContents();
 	}
+	void Register::setMask(Address mask) noexcept {
+		_mask = mask;
+		maskContents();
+	}
+	void Register::maskContents() noexcept {
+		_address = _address & _mask;
+	}
+	void Register::setAddress(Address a) noexcept {
+		_address = a;
+		maskContents();
+	}
+	void Register::setInteger(Integer a) noexcept {
+		_integer = a;
+		maskContents();
+	}
+
 	Register& Core::getRegister(RegisterIndex idx) {
 		return _registers[idx & 0x0F];
 	}
@@ -60,6 +76,11 @@ namespace cisc0 {
 		for (Address a = 0; a < memCap; ++a) {
 			_memory[a] = 0;
 		}
+		auto capacityMask = _capacity - 1;
+		_registers[Core::ArchitectureConstants::InstructionPointer].setMask(capacityMask);
+		_registers[Core::ArchitectureConstants::AddressRegister].setMask(capacityMask);
+		_registers[Core::ArchitectureConstants::StackPointer].setMask(capacityMask);
+		_registers[Core::ArchitectureConstants::CallStackPointer].setMask(capacityMask);
 	}
 	MemoryWord Core::loadWord(Address addr) {
 		if (addr >= _capacity) {
@@ -81,10 +102,34 @@ namespace cisc0 {
 		pc.increment(_capacity - 1);
 		return curr;
 	}
-	void Core::invoke(const Core::Return& value) {
+	MemoryWord Core::popSubroutineWord() noexcept {
+		auto& subroutine = getRegister<Core::ArchitectureConstants::CallStackPointer>();
+		auto value = loadWord(subroutine.getAddress());
+		subroutine.increment();
+		return value;
+	}
+	Address Core::popSubroutineAddress() noexcept {
+		auto lowerHalf = Address(popSubroutineWord());
+		auto upperHalf = Address(popSubroutineWord()) << 16;
+		return lowerHalf | upperHalf;
+	}
+	MemoryWord Core::popParameterWord() noexcept {
+		auto& sp = getRegister<Core::ArchitectureConstants::StackPointer>();
+		auto value = loadWord(sp.getAddress());
+		sp.increment();
+		return value;
+	}
+	Address Core::popParameterAddress() noexcept {
+		auto lower = Address(popParameterWord());
+		auto upper = Address(popParameterWord()) << 16;
+		return lower | upper;
+	}
+	void Core::invoke(const Core::Return&) {
+		auto newAddr = popSubroutineAddress();
+		getPC().setAddress(newAddr);
 	}
 
-	void Core::invoke(const Core::Terminate& value) {
+	void Core::invoke(const Core::Terminate&) {
 		_keepExecuting = false;
 	}
 
