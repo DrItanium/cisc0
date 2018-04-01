@@ -46,8 +46,19 @@ namespace cisc0 {
 	using MemoryWord = HalfAddress;
 	using RegisterIndex = byte;
 	using Bitmask = byte;
+	Address readRegisterValue(std::istream& in);
 	constexpr bool extractImmediateBit(MemoryWord word) noexcept {
 		return ((0b0000'0000'0001'0000 & word) >> 4) != 0;
+	}
+	constexpr MemoryWord make(byte lower, byte upper) noexcept {
+		MemoryWord up = MemoryWord(upper) << 8;
+		MemoryWord low = MemoryWord(lower);
+		return up | low;
+	}
+	constexpr Address make(byte lowest, byte lower, byte higher, byte highest) noexcept {
+		auto low = Address(make(lowest, lower));
+		auto upper = Address(make(higher, highest)) << 16;
+		return low | upper;
 	}
 	class Register {
 		public:
@@ -507,6 +518,8 @@ namespace cisc0 {
 			void pushSubroutineWord(MemoryWord value) noexcept;
 			void pushSubroutineAddress(Address value) noexcept;
 			void run();
+			void install(std::istream& in);
+			void dump(std::ostream& out);
 		private:
 			MemoryWord loadWord(Address addr);
 			void storeWord(Address addr, MemoryWord value);

@@ -23,31 +23,54 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "Core.h"
+#include <iostream>
+#include <fstream>
 
-#include "ClipsExtensions.h"
-#include "MemoryBlock.h"
-#include "AssemblerExternalAddressRegistrar.h"
-#include "Cisc0CoreWrapper.h"
-#include "IrisCoreWrapper.h"
-#include "IOController.h"
 
-extern "C" {
-	#include "clips.h"
+void usage(const std::string& name) {
+	std::cerr << name << ": path-to-installation-image [output-image-path]" << std::endl;
 }
-
-int main(int argc, char* argv[]) {
-	// make sure this is a common io bus
-	cisc0::CLIPSIOController bus;
-	auto mainEnv = bus.getRawEnvironment();
-	bus.initialize();
-	// install features here
-	cisc0::installExtensions(mainEnv);
-	cisc0::installMemoryBlockTypes(mainEnv);
-    cisc0::installExternalAddressAssemblers(mainEnv);
-	cisc0::installCoreWrapper(mainEnv);
-    iris::installCoreWrapper(mainEnv);
-	RerouteStdin(mainEnv, argc, argv);
-	CommandLoop(mainEnv);
-	bus.shutdown();
-	return -1;
+using byte = cisc0::byte;
+using Address = cisc0::Address;
+using MemoryWord = cisc0::MemoryWord;
+int main(int argc, char** argv) {
+	int exitCode = 0;
+	std::string in, out;
+	switch (argc) {
+		case 0:
+		case 1:
+			usage(argv[0]);
+			return 1;
+		case 3:
+			out = argv[2];
+		case 2:
+			in = argv[1];
+			break;
+		default:
+			usage(argv[0]);
+			return 1;
+	}
+	std::ifstream input(in.c_str(), std::ios::binary);
+	if (input.is_open()) {
+		// read the first four bytes to find out the size
+		cisc0::Core core (cisc0::readRegisterValue(input));
+		core.install(input);
+		core.run();
+		if (!out.empty()) {
+			std::ofstream file(out.c_str(), std::ios::binary);
+			if (!file.is_open()) {
+				std::cerr << "could not open: " << out << " for writing!" << std::endl;
+				exitCode = 1;
+			} else {
+				core.dump(file);
+			}
+			file.close();
+		}
+	} else {
+		std::cerr << "Could not open: " << in << " for reading!" << std::endl;
+		exitCode = 1;
+	}
+	input.close();
+	return exitCode;
 }

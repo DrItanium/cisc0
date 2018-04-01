@@ -729,6 +729,66 @@ namespace cisc0 {
 			invoke(decode());
 		}
 	}
+	Address readRegisterValue(std::istream& in) {
+		if (in.eof() || in.bad()) {
+			throw Problem("Premature termination during memory word read!");
+		}
+		auto lowest = cisc0::byte(input.get());
+		if (in.eof() || in.bad()) {
+			throw Problem("Premature termination during memory word read!");
+		}
+		auto lower = cisc0::byte(input.get());
+		if (in.eof() || in.bad()) {
+			throw Problem("Premature termination during memory word read!");
+		}
+		auto higher = cisc0::byte(input.get());
+		if (in.eof() || in.bad()) {
+			throw Problem("Premature termination during memory word read!");
+		}
+		auto highest = cisc0::byte(input.get());
+		return cisc0::make(lowest, lower, higher, highest);
+	}
+	MemoryWord readMemoryWord(std::istream& in) {
+		if (in.eof() || in.bad()) {
+			throw Problem("Premature termination during memory word read!");
+		}
+		auto lower = cisc0::byte(input.get());
+		if (in.eof() || in.bad()) {
+			throw Problem("Premature termination during memory word read!");
+		}
+		auto higher = cisc0::byte(input.get());
+		return cisc0::make(lower, higher);
+	}
+	constexpr byte getLowerHalf(MemoryWord value) noexcept { return byte(value); }
+	constexpr byte getUpperHalf(MemoryWord value) noexcept { return byte(value >> 8); }
+	constexpr MemoryWord getLowerHalf(Address value) noexcept { return MemoryWord(value); }
+	constexpr MemoryWord getUpperHalf(Address value) noexcept { return MemoryWord(value >> 16); }
+	void writeMemoryWord(std::ostream& out, MemoryWord value) {
+		out << char(getLowerHalf(value)) << char(getUpperHalf(value));
+	}
+	void writeAddress(std::ostream& out, Address value) {
+		writeMemoryWord(out, getLowerHalf(value));
+		writeMemoryWord(out, getUpperHalf(value));
+	}
+	void Core::install(std::istream& in) {
+		// read the 16 registers first
+		for (int i = 0; i < ArchitectureConstants::RegisterCount; ++i) {
+			_registers[i].setAddress(readRegisterValue(in));
+		}
+		for (Address i = 0; i < _capacity; ++i) {
+			_memory[i] = readMemoryWord(in);
+		}
+	}
+	void Core::dump(std::ostream& out) {
+		writeAddress(out, _capacity);
+		for (int i = 0; i < ArchitectureConstants::RegisterCount; ++i) {
+			writeAddress(out, _registers[i].getAddress());
+		}
+
+		for (Address a = 0; a < _capacity; ++a) {
+			writeMemoryWord(out, _memory[a]);
+		}
+	}
 
 } // end namespace cisc0
 
