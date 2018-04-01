@@ -24,6 +24,7 @@ enum}
 : csp ( -- n ) r13 ;
 : addr ( -- n ) r12 ;
 : val ( -- n ) r11 ;
+: temp ( -- n ) r10 ; 
 
 {enum
 : op-memory ( -- n ) literal ; enum,
@@ -187,6 +188,8 @@ variable current-address
 : .org ( value -- ) mask-imm32 current-address ! ;
 0 .org 
 
+: .here ( -- address ) current-address @ ;
+
 : ++addr ( -- ) current-address @ 1+ memory-mask bitwise-andu current-address ! ;
 : ->done ( instruction -- masked ) mask-imm16 
   linker-memory bin<<q
@@ -194,75 +197,94 @@ variable current-address
   current-address @ bin<<h \ output the address
   ++addr 
   bin<<q ;
-: !move ( src dest bitmask -- encoded ) 
+: .word16 ( value -- ) mask-imm16 ->done ;
+: .word32 ( value -- ) 
+  dup ( upper lower -- )
+  .word16 \ put the lower into memory as is! 
+  16 swap >>u .word16 \ followed by the upper 16
+  ; 
+: .word64 ( value -- )
+  dup ( upper lower -- )
+  .word32 \ put the lower 32 into memory as is!
+  32 swap >>u .word32 \ followed by the upper 32
+  ;
+
+: deflabel ( -- ) variable ;
+: .label ( -- variable ) variable$ ;
+: is-here ( variable -- ) .here swap ! ;
+
+
+: !move ( src dest bitmask -- ) 
   op-move ->inst ( src dest bitmask inst )
   ->lower4 ( src dest inst )
-  ->destination ( src inst )
-  ->source ( inst ) 
+  ->dest,src ( inst )
   ->done ;
 
 
-: !move8 ( src dest -- encoded ) 0m0001 !move ;
-: !move16 ( src dest -- encoded ) 0m0011 !move ;
-: !move24 ( src dest -- encoded ) 0m0111 !move ;
-: !move-upper16 ( src dest -- encoded ) 0m1100 !move ;
-: !move-lower16 ( src dest -- encoded ) !move16 ;
-: !move32 ( src dest -- encoded ) 0m1111 !move ;
-: !move0 ( src dest -- encoded ) 0m0000 !move ;
+: !move8 ( src dest -- ) 0m0001 !move ;
+: !move16 ( src dest -- ) 0m0011 !move ;
+: !move24 ( src dest -- ) 0m0111 !move ;
+: !move-upper16 ( src dest -- ) 0m1100 !move ;
+: !move-lower16 ( src dest -- ) !move16 ;
+: !move32 ( src dest -- ) 0m1111 !move ;
+: !move0 ( src dest -- ) 0m0000 !move ;
 
-: !swap ( src dest -- encoded ) 
+: !swap ( src dest -- ) 
   op-swap ->inst
   ->dest,src
   ->done ; 
 
-: !nop ( -- encoded ) r0 r0 !swap ;
+: !nop ( -- ) r0 r0 !swap ;
 
-: !misc ( style -- encoded ) op-misc ->inst ->lower4 ->done ;
-: !ret ( -- encoded ) style-return !misc ;
-: !terminate ( -- encoded ) style-terminate !misc ;
+: !misc ( style -- ) op-misc ->inst ->lower4 ->done ;
+: !ret ( -- ) style-return !misc ;
+: !terminate ( -- ) style-terminate !misc ;
 
-: !memory ( dest/offset bitmask kind2 -- encoded ) 
+: !memory ( dest/offset bitmask kind2 -- ) 
   op-memory ->inst
   ->style2 
   ->bitmask
   ->highest4 \ could be a destination register or integer offset
   ->done ;
 
-: !load ( offset bitmask -- encoded ) style-load !memory ;
-: !load8 ( offset -- encoded ) 0m0001 !load ;
-: !load8up ( offset -- encoded ) 0m0010 !load ;
-: !load16 ( offset -- encoded ) 0m0011 !load ;
-: !load16up ( offset -- encoded ) 0m1100 !load ;
-: !load32 ( offset -- encoded ) 0m1111 !load ;
-: !store ( offset bitmask -- encoded ) style-store !memory ;
-: !store8 ( offset -- encoded ) 0m0001 !store ;
-: !store8up ( offset -- encoded ) 0m0010 !store ;
-: !store16 ( offset -- encoded ) 0m0011 !store ;
-: !store16up ( offset -- encoded ) 0m1100 !store ;
-: !store32 ( offset -- encoded ) 0m1111 !store ;
-: !push ( dest bitmask -- encoded ) style-push !memory ;
-: !push16 ( dest -- encoded ) 0m0011 !push ;
-: !push16up ( dest -- encoded ) 0m1100 !push ;
-: !push32 ( dest -- encoded ) 0m1111 !push ;
-: !pop ( dest bitmask -- encoded ) style-pop !memory ;
-: !pop16 ( dest -- encoded ) 0m0011 !pop ;
-: !pop16up ( dest -- encoded ) 0m1100 !pop ;
-: !pop32 ( dest -- encoded ) 0m1111 !pop ;
+: !load ( offset bitmask -- ) style-load !memory ;
+: !load8 ( offset -- ) 0m0001 !load ;
+: !load8up ( offset -- ) 0m0010 !load ;
+: !load16 ( offset -- ) 0m0011 !load ;
+: !load16up ( offset -- ) 0m1100 !load ;
+: !load32 ( offset -- ) 0m1111 !load ;
+: !store ( offset bitmask -- ) style-store !memory ;
+: !store8 ( offset -- ) 0m0001 !store ;
+: !store8up ( offset -- ) 0m0010 !store ;
+: !store16 ( offset -- ) 0m0011 !store ;
+: !store16up ( offset -- ) 0m1100 !store ;
+: !store32 ( offset -- ) 0m1111 !store ;
+: !push ( dest bitmask -- ) style-push !memory ;
+: !push16 ( dest -- ) 0m0011 !push ;
+: !push16up ( dest -- ) 0m1100 !push ;
+: !push32 ( dest -- ) 0m1111 !push ;
+: !pop ( dest bitmask -- ) style-pop !memory ;
+: !pop16 ( dest -- ) 0m0011 !pop ;
+: !pop16up ( dest -- ) 0m1100 !pop ;
+: !pop32 ( dest -- ) 0m1111 !pop ;
+: !drop ( -- ) temp !pop32 ;
+: !2drop ( -- ) !drop !drop ;
+
 
 \ the instructions that have an immediate bit set are handled differently
 \ the actual contents that differ between the two types are merged separately
 \ with the common piece performed here
-: ->shift ( body imm? -- encoded )
+: ->shift ( body imm? -- )
   op-shift ->inst ( body imm? op )
   word, ( body op )
   word, ( op ) 
   ->done ;
 
-: !shift ( src dest direction -- encoded ) 
+: !shift ( src dest direction -- ) 
   ->dest,src 
   indirect-form word, ->shift ; 
 
-: !shift-immediate ( imm5 dest direction -- encoded)
+: !shift-immediate ( imm5 dest direction -- )
   \ this has a different form
   ->destination ( imm5 op ) 
   swap ( op imm5 )
@@ -272,25 +294,59 @@ variable current-address
   immediate-form word, ( op )
   ->shift ;
 
-: !shift-left ( src dest -- encoded ) left !shift ;
-: !shift-right ( src dest -- encoded ) right !shift ;
-: !shift-left-immediate ( imm5 dest -- encoded ) left !shift-immediate ;
-: !shift-right-immediate ( imm5 dest -- encoded ) right !shift-immediate ;
+: !shift-left ( src dest -- ) left !shift ;
+: !shift-right ( src dest -- ) right !shift ;
+: !shift-left-immediate ( imm5 dest -- ) left !shift-immediate ;
+: !shift-right-immediate ( imm5 dest -- ) right !shift-immediate ;
 
-: !2* ( dest -- encoded ) 1 swap !shift-left-immediate ;
-: !double ( dest -- encoded ) !2* ;
-: !2/ ( dest -- encoded ) 1 swap !shift-right-immediate ;
-: !halve ( dest -- encoded ) !2/ ;
-: !4* ( dest -- encoded ) 2 swap !shift-left-immediate ;
-: !4/ ( dest -- encoded ) 2 swap !shift-right-immediate ;
-: !quarter ( dest -- encoded ) !4/ ;
-: !8* ( dest -- encoded ) 3 swap !shift-left-immediate ;
-: !8/ ( dest -- encoded ) 3 swap !shift-right-immediate ;
-: !eighth ( dest -- encoded ) !8/ ;
-: !16* ( dest -- encoded ) 4 swap !shift-left-immediate ;
-: !16/ ( dest -- encoded ) 4 swap !shift-right-immediate ;
-: !sixteenth ( dest -- encoded ) !16/ ;
+: !2* ( dest -- ) 1 swap !shift-left-immediate ;
+: !double ( dest -- ) !2* ;
+: !2/ ( dest -- ) 1 swap !shift-right-immediate ;
+: !halve ( dest -- ) !2/ ;
+: !4* ( dest -- ) 2 swap !shift-left-immediate ;
+: !4/ ( dest -- ) 2 swap !shift-right-immediate ;
+: !quarter ( dest -- ) !4/ ;
+: !8* ( dest -- ) 3 swap !shift-left-immediate ;
+: !8/ ( dest -- ) 3 swap !shift-right-immediate ;
+: !eighth ( dest -- ) !8/ ;
+: !16* ( dest -- ) 4 swap !shift-left-immediate ;
+: !16/ ( dest -- ) 4 swap !shift-right-immediate ;
+: !sixteenth ( dest -- ) !16/ ;
 
+: ->branch ( body imm? -- ) 
+  op-branch ->inst ( b i op )
+  word, ( b op )
+  word, ( op ) 
+  ->done ;
+
+: !branch-indirect ( dest cond? link? -- ) 
+  word, ( d b )
+  ->destination ( body )
+  indirect-form ( body imm ) ->branch ;
+: !branch ( address cond? link? -- ) 
+  word, ( a b )
+  immediate-form ->branch ( address )
+  .word32 \ we are basically putting a .word32 after the fact
+  ;
+
+\ flag order does not matter but provide macros
+: !branch-unconditional-indirect ( dest -- ) unconditional nolink !branch-indirect ;
+: !branch-unconditional ( imm -- ) unconditional nolink !branch ;
+: !branch-conditional-indirect ( dest -- ) conditional nolink !branch-indirect ;
+: !branch-conditional ( imm -- ) conditional nolink !branch ;
+: !call-unconditional-indirect ( dest -- ) unconditional link !branch-indirect ;
+: !call-unconditional ( imm -- ) unconditional link !branch ;
+: !call-conditional-indirect ( dest -- ) conditional link !branch-indirect ;
+: !call-conditional ( imm -- ) conditional link !branch ;
+
+: !bui ( dest -- ) !branch-unconditional-indirect ;
+: !bu ( imm -- ) !branch-unconditional ;
+: !bci ( dest -- ) !branch-conditional-indirect ;
+: !bc ( imm -- ) !branch-conditional ;
+: !cui ( dest -- ) !call-unconditional-indirect ;
+: !cu ( imm -- ) !call-unconditional ;
+: !cci ( dest -- ) !call-conditional-indirect ;
+: !cc ( imm -- ) !call-conditional ;
 
 \ set is a little strange since we have to be able to decompose the instruction
 \ into multiple 16-bit words based on the bitmask
