@@ -151,17 +151,17 @@ enum}
 : set-source-and-dest ( src dest -- encoded ) set-destination swap set-source combine2 ;
 : word: ( -- n ) 0 ;
 : word, ( a b -- c ) combine2 ;
-: ->opcode ( code op -- encoded ) set-opcode word, ;
 : ->destination ( destination code -- encoded ) swap to-destination word, ;
 : ->source ( destination code -- encoded ) swap to-source word, ;
 : ->lower4 ( imm4 code -- encoded ) swap to-lower4 word, ;
+: ->inst ( opcode -- encoded ) word: swap set-opcode word, ;
+: ->done ( instruction -- masked ) mask-imm16 ;
 : !move ( src dest bitmask -- encoded ) 
-  word: ( src dest bitmask 0 )
-  op-move ->opcode ( src dest bitmask inst )
+  op-move ->inst ( src dest bitmask inst )
   ->lower4 ( src dest inst )
   ->destination ( src inst )
   ->source ( inst ) 
-	;
+  ->done ;
 
 
 : !move8 ( src dest -- encoded ) 0m0001 !move ;
@@ -173,11 +173,13 @@ enum}
 : !move0 ( src dest -- encoded ) 0m0000 !move ;
 
 : !swap ( src dest -- encoded ) 
-  word: ( src dest 0 )
-  op-swap ->opcode word, ( src dest op )
-  swap ->destination word, ( src op )
-  swap ->source ( inst esrc )
-  word; ; 
+  op-swap ->inst
+  ->destination ( src op )
+  ->source ( inst esrc )
+  ->done ; 
+
+: !nop ( -- encoded ) r0 r0 !swap ;
+
 
 close-input-file
 
