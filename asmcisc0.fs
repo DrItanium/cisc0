@@ -115,6 +115,7 @@ enum}
 : to-lower4 ( value -- encoded ) 4 imm4-to-position ;
 : to-lowest4 ( value -- encoded ) mask-imm4 ;
 : start-at-pos5 ( value -- encoded ) 5 to-position ;
+: start-at-pos7 ( value -- encoded ) 7 to-position ;
 : style3 ( index -- encoded ) mask-imm3 start-at-pos5 ;
 : style2 ( index -- encoded ) mask-imm2 start-at-pos5 ;
 : style4 ( index -- encoded ) mask-imm4 4 to-position ;
@@ -128,8 +129,8 @@ enum}
 : cond-bit ( flag -- encoded ) set-bit-pos6 ;
 : immediate-form ( -- encoded ) true immediate-bit ;
 : indirect-form ( -- encoded ) false immediate-bit ;
-: direction-left ( -- encoded ) true direction-bit ;
-: direction-right ( -- encoded ) false direction-bit ;
+: left ( -- encoded ) true direction-bit ;
+: right ( -- encoded ) false direction-bit ;
 : link ( -- encoded ) true link-bit ;
 : nolink ( -- encoded ) false link-bit ;
 : conditional ( -- encoded ) true cond-bit ;
@@ -154,13 +155,45 @@ enum}
 : ->highest4 ( imm4 code -- encoded ) swap to-highest4 word, ;
 : ->destination ( destination code -- encoded ) ->highest4 ;
 : ->source ( destination code -- encoded ) swap set-source word, ;
+: ->dest,src ( src destination code -- encoded ) ->destination ->source ;
 : ->lower4 ( imm4 code -- encoded ) swap to-lower4 word, ;
 : ->style2 ( imm2 code -- encoded ) swap style2 word, ;
 : ->style3 ( imm3 code -- encoded ) swap style3 word, ;
 : ->style4 ( imm4 code -- encoded ) ->lower4 ;
 : ->inst ( opcode -- encoded ) word: swap set-opcode word, ;
 : ->bitmask ( bitmask code -- encoded ) swap to-higher4 word, ;
-: ->done ( instruction -- masked ) mask-imm16 ;
+
+{enum
+: linker-capacity ( -- n ) literal ; enum,
+: linker-register ( -- n ) literal ; enum,
+: linker-memory ( -- n ) literal ; 
+enum}
+variable capacity 
+0x1000000 capacity ! 
+: .register ( value index -- ) 
+  swap ( index value )
+  linker-register bin<<q 
+  bin<<h
+  bin<<q ;
+: .capacity ( capacity -- ) 
+  dup capacity ! \ set the new capacity
+  linker-capacity bin<<q 
+  bin<<h \ out goes the capacity
+  0 bin<<q \ dump zero to the value
+  ;
+: memory-mask ( -- n ) capacity @ 1- ;
+
+variable current-address
+: .org ( value -- ) mask-imm32 current-address ! ;
+0 .org 
+
+: ++addr ( -- ) current-address @ 1+ memory-mask bitwise-andu current-address ! ;
+: ->done ( instruction -- masked ) mask-imm16 
+  linker-memory bin<<q
+  \ output to our binary file at this point
+  current-address @ bin<<h \ output the address
+  ++addr 
+  bin<<q ;
 : !move ( src dest bitmask -- encoded ) 
   op-move ->inst ( src dest bitmask inst )
   ->lower4 ( src dest inst )
@@ -179,8 +212,7 @@ enum}
 
 : !swap ( src dest -- encoded ) 
   op-swap ->inst
-  ->destination ( src op )
-  ->source ( inst esrc )
+  ->dest,src
   ->done ; 
 
 : !nop ( -- encoded ) r0 r0 !swap ;
@@ -195,6 +227,7 @@ enum}
   ->bitmask
   ->highest4 \ could be a destination register or integer offset
   ->done ;
+
 : !load ( offset bitmask -- encoded ) style-load !memory ;
 : !load8 ( offset -- encoded ) 0m0001 !load ;
 : !load8up ( offset -- encoded ) 0m0010 !load ;
@@ -215,6 +248,52 @@ enum}
 : !pop16 ( dest -- encoded ) 0m0011 !pop ;
 : !pop16up ( dest -- encoded ) 0m1100 !pop ;
 : !pop32 ( dest -- encoded ) 0m1111 !pop ;
+
+\ the instructions that have an immediate bit set are handled differently
+\ the actual contents that differ between the two types are merged separately
+\ with the common piece performed here
+: ->shift ( body imm? -- encoded )
+  op-shift ->inst ( body imm? op )
+  word, ( body op )
+  word, ( op ) 
+  ->done ;
+
+: !shift ( src dest direction -- encoded ) 
+  ->dest,src 
+  indirect-form word, ->shift ; 
+
+: !shift-immediate ( imm5 dest direction -- encoded)
+  \ this has a different form
+  ->destination ( imm5 op ) 
+  swap ( op imm5 )
+  mask-imm5 ( op imm5m )
+  start-at-pos7 ( op imm5m7s )
+  word, ( op )
+  immediate-form word, ( op )
+  ->shift ;
+
+: !shift-left ( src dest -- encoded ) left !shift ;
+: !shift-right ( src dest -- encoded ) right !shift ;
+: !shift-left-immediate ( imm5 dest -- encoded ) left !shift-immediate ;
+: !shift-right-immediate ( imm5 dest -- encoded ) right !shift-immediate ;
+
+: !2* ( dest -- encoded ) 1 swap !shift-left-immediate ;
+: !double ( dest -- encoded ) !2* ;
+: !2/ ( dest -- encoded ) 1 swap !shift-right-immediate ;
+: !halve ( dest -- encoded ) !2/ ;
+: !4* ( dest -- encoded ) 2 swap !shift-left-immediate ;
+: !4/ ( dest -- encoded ) 2 swap !shift-right-immediate ;
+: !quarter ( dest -- encoded ) !4/ ;
+: !8* ( dest -- encoded ) 3 swap !shift-left-immediate ;
+: !8/ ( dest -- encoded ) 3 swap !shift-right-immediate ;
+: !eighth ( dest -- encoded ) !8/ ;
+: !16* ( dest -- encoded ) 4 swap !shift-left-immediate ;
+: !16/ ( dest -- encoded ) 4 swap !shift-right-immediate ;
+: !sixteenth ( dest -- encoded ) !16/ ;
+
+
+\ set is a little strange since we have to be able to decompose the instruction
+\ into multiple 16-bit words based on the bitmask
 
 close-input-file
 
