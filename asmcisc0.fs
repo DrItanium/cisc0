@@ -58,6 +58,9 @@ enum}
 : 0m1111 ( -- n ) literal ;
 enum}
 
+: upper-half? ( value -- f ) 0m1100 bitwise-andu 0<> ;
+: lower-half? ( value -- f ) 0m0011 bitwise-andu 0<> ; 
+
 
 {enum
 : style-equals ( -- n ) literal ; enum,
@@ -145,7 +148,8 @@ enum}
 : combine4 ( a b c d -- e ) 
   combine3 ( a f )
   combine2 ( e ) ;
-
+variable current-bitmask
+0m0000 current-bitmask !
 : set-destination ( index -- encoded ) to-highest4 ;
 : set-source ( index -- encoded ) to-higher4 ;
 : set-offset ( index -- encoded ) to-highest4 ;
@@ -162,7 +166,10 @@ enum}
 : ->style3 ( imm3 code -- encoded ) swap style3 word, ;
 : ->style4 ( imm4 code -- encoded ) ->lower4 ;
 : ->inst ( opcode -- encoded ) word: swap set-opcode word, ;
-: ->bitmask ( bitmask code -- encoded ) swap to-higher4 word, ;
+: ->bitmask ( bitmask code -- encoded ) 
+  swap 
+  dup current-bitmask ! \ need to save the current-bitmask so we can use it if needed
+  to-higher4 word, ;
 
 {enum
 : linker-capacity ( -- n ) literal ; enum,
@@ -347,6 +354,7 @@ variable current-address
 : !cu ( imm -- ) !call-unconditional ;
 : !cci ( dest -- ) !call-conditional-indirect ;
 : !cc ( imm -- ) !call-conditional ;
+
 
 \ set is a little strange since we have to be able to decompose the instruction
 \ into multiple 16-bit words based on the bitmask
