@@ -39,6 +39,18 @@ namespace cisc0 {
 		_address -= decrementValue;
 		_address &= mask;
 	}
+	Register& Core::getRegister(RegisterIndex idx) {
+		return _registers[idx & 0x0F];
+	}
+	Register& Core::getPC() {
+		return getRegister<Core::ArchitectureConstants::InstructionPointer>();
+	}
+	Register& Core::getDestination(const Core::HasDestination& dest) {
+		return getRegister(dest.getDestination());
+	}
+	Register& Core::getSource(const Core::HasSource& src) {
+		return getRegister(src.getSource());
+	}
 	Core::Core(Address memCap) : _capacity(memCap) {
 		_memory = std::make_unique<MemoryWord[]>(memCap);
 		_registers = std::make_unique<Register[]>(16);
@@ -109,11 +121,60 @@ namespace cisc0 {
 	}
 
 	void Core::invoke(const Core::MemoryStore& value) {
+		auto addr = getRegister<Core::ArchitectureConstants::AddressRegister>().getAddress() + value.getMemoryOffset();
+		auto& val = getRegister<Core::ArchitectureConstants::ValueRegister>();
+		auto lowerMask = value.getLowerMask();
+		auto upperMask = value.getUpperMask();
+		if (lowerMask == 0 && upperMask == 0) {
+		} else if (lowerMask == 0xFFFF && upperMask == 0) {
+			storeWord(addr, MemoryWord((val.getAddress() & 0x0000FFFF)));
+		} else if (lowerMask == 0x0000 && upperMask == 0xFFFF) {
+			storeWord(addr + 1, MemoryWord((val.getAddress() & 0xFFFF0000) >> 16));
+		} else if (lowerMask == 0xFFFF && upperMask == 0xFFFF) {
+			storeWord(addr, MemoryWord(val.getAddress() & 0x0000FFFF));
+			storeWord(addr + 1, MemoryWord((val.getAddress() & 0xFFFF0000) >> 16));
+		} else {
+			if (lowerMask != 0) {
+				auto value = loadWord(addr) & ~lowerMask;
+				auto newValue = val.getLowerHalf() & lowerMask;
+				storeWord(addr, value | newValue);
+			} 
 
+			if (upperMask != 0) {
+				auto value = loadWord(addr + 1) & ~upperMask;
+				auto newValue = val.getUpperHalf() & upperMask;
+				storeWord(addr + 1, value | newValue);
+			}
+		}
 	}
 
 	void Core::invoke(const Core::MemoryLoad& value) {
-
+		auto addr = getRegister<Core::ArchitectureConstants::AddressRegister>().getAddress() + value.getMemoryOffset();
+		auto& val = getRegister<Core::ArchitectureConstants::ValueRegister>();
+		bool readLower = false;
+		bool readUpper = false;
+		switch (value.getBitmask()) {
+			case 0b0000:
+				break;
+			case 0b0001:
+			case 0b0010:
+			case 0b0011:
+				// lower half only!
+				readLower = true;
+				break;
+			case 0b0100:
+			case 0b1000:
+			case 0b1100:
+				readUpper = true;
+				break;
+			default:
+				readLower = true;
+				readUpper = true;
+				break;
+		}
+		auto lower = readLower ? Address(loadWord(addr)) : 0;
+		auto upper = readUpper ? Address(loadWord(addr + 1)) << 16 : 0;
+		val.setInteger((lower | upper) & value.getExpandedBitmask());
 	}
 
 	void Core::invoke(const Core::Branch& value) {
@@ -130,12 +191,6 @@ namespace cisc0 {
 
 	void Core::invoke(const Core::Shift& value) {
 		variantInvoke(value);
-	}
-	Register& Core::getDestination(const Core::HasDestination& d) {
-		return getRegister(d.getDestination());
-	}
-	Register& Core::getSource(const Core::HasSource& s) {
-		return getRegister(s.getSource());
 	}
 	constexpr Address performShift(bool shiftLeft, Address base, Address shift) noexcept {
 		if (shiftLeft) {

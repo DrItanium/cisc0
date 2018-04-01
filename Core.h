@@ -58,6 +58,8 @@ namespace cisc0 {
 			bool getTruth() const noexcept { return _address != 0; }
 			void increment(Address mask = 0xFFFFFFFF, Address incrementValue = 1) noexcept;
 			void decrement(Address mask = 0xFFFFFFFF, Address decrementValue = 1) noexcept;
+			MemoryWord getUpperHalf() const noexcept { return MemoryWord((_address & 0xFFFF0000) >> 16); }
+			MemoryWord getLowerHalf() const noexcept { return MemoryWord((_address & 0x0000FFFF)); }
 		private:
 			Address _address;
 			Integer _integer;
@@ -163,6 +165,12 @@ namespace cisc0 {
 							default:
 								throw "Bad Index!";
 						}
+					}
+					MemoryWord getLowerMask() const noexcept {
+						return MemoryWord(getExpandedBitmask() & 0x0000FFFF);
+					}
+					MemoryWord getUpperMask() const noexcept {
+						return MemoryWord((getExpandedBitmask() & 0xFFFF0000) >> 16);
 					}
 				private:
 					Bitmask _mask;
@@ -391,14 +399,9 @@ namespace cisc0 {
 				Pop,
 			};
 			struct MemoryGeneric : Extractable, HasBitmask {
-				bool indirectBitSet() const noexcept { return _indirect; }
-				void setIndirectBit(bool v) noexcept { _indirect = v; }
 				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
 					extractBitmask(a);
-					setIndirectBit(((a & 0b0000000001000000) >> 6) != 0);
 				}
-				private:
-					bool _indirect = false;
 			};
 			// use the destination field to store an offset
 			struct MemoryLoad : MemoryGeneric, HasMemoryOffset<0xF000, 12> {
@@ -467,6 +470,10 @@ namespace cisc0 {
 		private:
 			MemoryWord loadWord(Address addr);
 			void storeWord(Address addr, MemoryWord value);
+			template<byte index>
+			Register& getRegister() noexcept {
+				return _registers[index & 0x0F];
+			}
 			Register& getRegister(RegisterIndex index);
 			Register& getDestination(const HasDestination&);
 			Register& getSource(const HasSource&);
