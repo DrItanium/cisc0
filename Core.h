@@ -47,6 +47,19 @@ namespace cisc0 {
 	using Bitmask = byte;
 	class Core {
 		public:
+			struct Extractable {
+				public:
+					Extractable() = default;
+					~Extractable() = default;
+					virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c ) noexcept = 0;
+					inline void extract(MemoryWord a, MemoryWord b) noexcept {
+						extract(a, b, 0);
+					}
+					inline void extract(MemoryWord a) noexcept {
+						extract(a, 0);
+					}
+
+			};
 			enum class OperationCode : byte { 
 				Memory, 
 				Arithmetic, 
@@ -59,7 +72,7 @@ namespace cisc0 {
 				Swap, 
 				Misc, 
 			};
-			class HasBitmask {
+			struct HasBitmask {
 				public:
 					HasBitmask() : _mask(0) { }
 					Bitmask getBitmask() const noexcept { return _mask; }
@@ -106,7 +119,7 @@ namespace cisc0 {
 				private:
 					Bitmask _mask;
 			};
-			class HasDestination {
+			struct HasDestination {
 				public:
 					HasDestination() : _dest(0) { }
 					RegisterIndex getDestination() const noexcept { return _dest; }
@@ -115,7 +128,7 @@ namespace cisc0 {
 				private:
 					RegisterIndex _dest;
 			};
-			class HasSource {
+			struct HasSource {
 				public:
 					HasSource() : _src(0) { }
 					RegisterIndex getSource() const noexcept { return _src; }
@@ -125,7 +138,7 @@ namespace cisc0 {
 					RegisterIndex _src;
 			};
 
-			class HasImmediateValue {
+			struct HasImmediateValue {
 				public:
 					HasImmediateValue() : _value(0) { }
 					Address getImmediate() const noexcept { return _value; }
@@ -138,7 +151,7 @@ namespace cisc0 {
 				private:
 					Address _value;
 			};
-			class HasMaskableImmediateValue : public HasBitmask, HasImmediateValue {
+			struct HasMaskableImmediateValue : Extractable, HasBitmask, HasImmediateValue {
 				public:
 					using Parent0 = HasBitmask;
 					using Parent1 = HasImmediateValue;
@@ -147,9 +160,15 @@ namespace cisc0 {
 					virtual void setImmediate(Address immediate) noexcept override {
 						Parent1::setImmediate(immediate & getExpandedBitmask());
 					}
+
+					virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+						extractBitmask(a);
+						extractImmediate(b, c);
+					}
+
 			};
 			template<typename S, MemoryWord mask, byte shift>
-			class HasStyle {
+			struct HasStyle {
 					static_assert(std::is_enum_v<S>, "HasStyle must be provided with an enum!");
 				public:
 					using Style = S;
@@ -162,17 +181,18 @@ namespace cisc0 {
 			};
 
 			template<MemoryWord mask, byte shift>
-			class HasMemoryOffset {
+			struct HasMemoryOffset {
 				public:
 					HasMemoryOffset() : _value(0) { }
 					byte getMemoryOffset() const noexcept { return _value; }
 					void setMemoryOffset(byte v) noexcept { _value = v; }
-					void extract(MemoryWord value) noexcept {
+					void extractMemoryOffset(MemoryWord value) noexcept {
 						setMemoryOffset(byte((value & mask) >> shift));
 					}
 				private:
 					byte _value;
 			};
+
 
 
 			enum class CompareStyle : byte { 
@@ -185,9 +205,24 @@ namespace cisc0 {
 				MoveFromCondition, 
 				MoveToCondition, 
 			};
-			struct CompareGeneric  : HasDestination, HasStyle<CompareStyle, 0b0000000011100000, 5> { };
-			struct CompareRegister : CompareGeneric, HasSource { };
-			struct CompareImmediate : CompareGeneric, HasMaskableImmediateValue { };
+			struct CompareGeneric  : Extractable, HasDestination, HasStyle<CompareStyle, 0b0000000011100000, 5> {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractDestination(a);
+					extractStyle(a);
+				}
+			};
+			struct CompareRegister : CompareGeneric, HasSource {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					CompareGeneric::extract(a, b, c);
+					extractSource(a);
+				}
+			};
+			struct CompareImmediate : CompareGeneric, HasMaskableImmediateValue { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					CompareGeneric::extract(a, b, c);
+					HasMaskableImmediateValue::extract(a, b, c);
+				}
+			};
 			using Compare = std::variant<CompareRegister, CompareImmediate>;
 
 			enum class ArithmeticStyle : byte { 
@@ -199,9 +234,27 @@ namespace cisc0 {
 				Min,
 				Max,
 			};
-			struct ArithmeticGeneric : HasDestination, HasStyle<ArithmeticStyle, 0b0000000011100000, 5> { };
-			struct ArithmeticRegister : ArithmeticGeneric, HasSource { };
-			struct ArithmeticImmediate : ArithmeticGeneric, HasMaskableImmediateValue { };
+			struct ArithmeticGeneric : Extractable, HasDestination, HasStyle<ArithmeticStyle, 0b0000000011100000, 5> { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractStyle(a);
+					extractDestination(a);
+				}
+			};
+			struct ArithmeticRegister : ArithmeticGeneric, HasSource { 
+				using Parent0 = ArithmeticGeneric;
+
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					Parent0::extract(a, b, c);
+					extractSource(a);
+				}
+			};
+			struct ArithmeticImmediate : ArithmeticGeneric, HasMaskableImmediateValue {
+				using Parent0 = ArithmeticGeneric;
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					Parent0::extract(a, b, c);
+					HasMaskableImmediateValue::extract(a, b, c);
+				}
+			};
 			using Arithmetic = std::variant<ArithmeticRegister, ArithmeticImmediate>;
 			enum class LogicalStyle : byte { 
 				And, 
@@ -210,36 +263,78 @@ namespace cisc0 {
 				Nand, 
 				Not 
 			};
-			struct LogicalGeneric : HasDestination, HasStyle<LogicalStyle, 0b0000000011100000, 5> { };
-			struct LogicalRegister : LogicalGeneric, HasSource { };
-			struct LogicalImmediate : LogicalGeneric, HasMaskableImmediateValue { };
+			struct LogicalGeneric : Extractable, HasDestination, HasStyle<LogicalStyle, 0b0000000011100000, 5> { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractDestination(a);
+					extractStyle(a);
+				}
+			};
+			struct LogicalRegister : LogicalGeneric, HasSource { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					LogicalGeneric::extract(a, b, c);
+					extractSource(a);
+				}
+			};
+			struct LogicalImmediate : LogicalGeneric, HasMaskableImmediateValue { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					LogicalGeneric::extract(a, b, c);
+					HasMaskableImmediateValue::extract(a, b, c);
+				}
+			};
 			using Logical = std::variant<LogicalRegister, LogicalImmediate>;
-			struct ShiftGeneric : HasDestination {
+			struct ShiftGeneric : Extractable, HasDestination {
 				bool shiftLeft() const noexcept { return _shiftLeft; }
 				void setShiftLeft(bool value) noexcept { _shiftLeft = value; }
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					setShiftLeft(((a & 0b0000000000100000) >> 5) != 0);
+					extractDestination(a);
+				}
 				private:
 					bool _shiftLeft = false;
 			};
-			struct ShiftRegister : ShiftGeneric, HasSource { };
+			struct ShiftRegister : ShiftGeneric, HasSource {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					ShiftGeneric::extract(a, b, c);
+					extractSource(a);
+				}
+			};
 			struct ShiftImmediate : ShiftGeneric {
 				void setShiftAmount(byte value) noexcept { _imm5 = value & 0b00011111; }
 				byte getShiftAmount() const noexcept { return _imm5; }
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					ShiftGeneric::extract(a, b, c);
+					setShiftAmount(byte((a & 0b0000111110000000) >> 7));
+				}
 				private:
 					byte _imm5;
 			};
 			using Shift = std::variant<ShiftRegister, ShiftImmediate>;
-			struct BranchGeneric {
+			struct BranchGeneric : Extractable {
 				public:
 					bool performLink() const noexcept { return _performLink; }
 					bool performCall() const noexcept { return _performCall; }
 					void setPerformLink(bool value) noexcept { _performLink = value; }
 					void setPerformCall(bool value) noexcept { _performCall = value; }
+					virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+						setPerformCall(((a & 0b0000000000100000) >> 5) != 0);
+						setPerformLink(((a & 0b0000000001000000) >> 6) != 0);
+					}
 				private:
 					bool _performLink = false;
 					bool _performCall = false;
 			};
-			struct BranchRegister : BranchGeneric, HasDestination { };
-			struct BranchImmediate : BranchGeneric, HasImmediateValue { };
+			struct BranchRegister : BranchGeneric, HasDestination {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					BranchGeneric::extract(a, b, c);
+					extractDestination(a);
+				}
+			};
+			struct BranchImmediate : BranchGeneric, HasImmediateValue {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					BranchGeneric::extract(a, b, c);
+					extractImmediate(b, c);
+				}
+			};
 			using Branch = std::variant<BranchRegister, BranchImmediate>;
 			enum class MemoryStyle : byte {
 				Load,
@@ -247,28 +342,75 @@ namespace cisc0 {
 				Push,
 				Pop,
 			};
-			struct MemoryGeneric : HasBitmask {
+			struct MemoryGeneric : Extractable, HasBitmask {
 				bool indirectBitSet() const noexcept { return _indirect; }
 				void setIndirectBit(bool v) noexcept { _indirect = v; }
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractBitmask(a);
+					setIndirectBit(((a & 0b0000000001000000) >> 6) != 0);
+				}
 				private:
 					bool _indirect = false;
 			};
 			// use the destination field to store an offset
-			struct MemoryLoad : MemoryGeneric, HasMemoryOffset<0xF000, 12> { };
-			struct MemoryStore : MemoryGeneric, HasMemoryOffset<0xF000, 12> { };
-			struct MemoryPush : MemoryGeneric, HasDestination { };
-			struct MemoryPop : MemoryGeneric, HasDestination { };
+			struct MemoryLoad : MemoryGeneric, HasMemoryOffset<0xF000, 12> {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					MemoryGeneric::extract(a, b, c);
+					extractMemoryOffset(a);
+				}
+			};
+			struct MemoryStore : MemoryGeneric, HasMemoryOffset<0xF000, 12> { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					MemoryGeneric::extract(a, b, c);
+					extractMemoryOffset(a);
+				}
+			};
+			struct MemoryPush : MemoryGeneric, HasDestination { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					MemoryGeneric::extract(a, b, c);
+					extractDestination(a);
+				}
+			};
+			struct MemoryPop : MemoryGeneric, HasDestination {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					MemoryGeneric::extract(a, b, c);
+					extractDestination(a);
+				}
+			};
 			using Memory = std::variant<MemoryLoad, MemoryStore, MemoryPush, MemoryPop>;
 
-			struct Move : HasDestination, HasSource, HasBitmask { };
-			struct Set : HasDestination, HasBitmask, HasImmediateValue { };
-			struct Swap : HasDestination, HasSource { };
+			struct Move : Extractable, HasDestination, HasSource, HasBitmask {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractDestination(a);
+					extractSource(a);
+					extractBitmask(a);
+				}
+			};
+			struct Set : HasDestination, HasMaskableImmediateValue { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractDestination(a);
+					HasMaskableImmediateValue::extract(a, b, c);
+				}
+			};
+			struct Swap : Extractable, HasDestination, HasSource { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractDestination(a);
+					extractSource(a);
+				}
+
+			};
 			enum class MiscStyle {
 				Return,
 				Terminate,
 			};
-			struct Return { };
-			struct Terminate : HasDestination { };
+			struct Return : Extractable { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override { }
+			};
+			struct Terminate : Extractable, HasDestination { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractDestination(a);
+				}
+			};
 			using Misc = std::variant<Return, Terminate>;
 		public:
 			
