@@ -156,13 +156,53 @@ namespace cisc0 {
 	void Core::invoke(const Core::Memory& value) {
 		variantInvoke(value);
 	}
+	void Register::setLowerHalf(MemoryWord value) noexcept {
+		auto addr = Address(value);
+		auto other = Address(getUpperHalf()) << 16;
+		setAddress(addr | other);
+	}
+	void Register::setUpperHalf(MemoryWord value) noexcept {
+		auto addr = Address(value) << 16;
+		auto other = Address(getLowerHalf());
+		setAddress(addr | other);
+	}
+	void Core::pushParameterWord(MemoryWord w) noexcept {
+		auto& sp = getRegister<Core::ArchitectureConstants::StackPointer>();
+		sp.decrement();
+		storeWord(sp.getAddress(), w);
+	}
+	void Core::pushParameterAddress(Address a) noexcept {
+		pushParameterWord(MemoryWord((a & 0xFFFF0000) >> 16));
+		pushParameterWord(MemoryWord(a));
+	}
+	void Core::pushSubroutineWord(MemoryWord w) noexcept {
+		auto& sp = getRegister<Core::ArchitectureConstants::CallStackPointer>();
+		sp.decrement();
+		storeWord(sp.getAddress(), w);
+	}
+	void Core::pushSubroutineAddress(Address a) noexcept {
+		pushSubroutineWord(MemoryWord((a & 0xFFFF0000) >> 16));
+		pushSubroutineWord(MemoryWord(a));
+	}
 
 	void Core::invoke(const Core::MemoryPop& value) {
-
+		auto& dest = getDestination(value);
+		if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
+			dest.setLowerHalf(popParameterWord() & lowerMask);
+		}
+		if (auto upperMask = value.getUpperMask(); upperMask != 0) {
+			dest.setUpperHalf(popParameterWord() & upperMask);
+		}
 	}
 
 	void Core::invoke(const Core::MemoryPush& value) {
-
+		auto& dest = getDestination(value);
+		if (auto upperMask = value.getUpperMask(); upperMask != 0) {
+			pushParameterWord(dest.getUpperHalf() & upperMask);
+		}
+		if (auto lowerMask = value.getLowerMask(); lowerMask != 0) {
+			pushParameterWord(dest.getLowerHalf() & lowerMask);
+		}
 	}
 
 	void Core::invoke(const Core::MemoryStore& value) {
@@ -184,7 +224,6 @@ namespace cisc0 {
 				auto newValue = val.getLowerHalf() & lowerMask;
 				storeWord(addr, value | newValue);
 			} 
-
 			if (upperMask != 0) {
 				auto value = loadWord(addr + 1) & ~upperMask;
 				auto newValue = val.getUpperHalf() & upperMask;
@@ -227,11 +266,37 @@ namespace cisc0 {
 	}
 
 	void Core::invoke(const Core::BranchRegister& value) {
-
+		auto whereToGo = getDestination(value).getAddress();
+		auto updatePC = value.performCall() || (value.conditionallyEvaluate() && _conditionRegister) || (!value.conditionallyEvaluate());
+		if (value.performCall()) {
+            // call instruction
+            // figure out where we are going to go, this will cause loads and
+            // incrementation of the instruction pointer.
+            // Once done, we then push the next address following the newly
+            // modified ip to the stack. Then we update the ip of where we are
+            // going to go!
+			pushSubroutineAddress(getPC().getAddress());
+		}
+		if (updatePC) {
+			getPC().setAddress(whereToGo);
+		}
 	}
 
 	void Core::invoke(const Core::BranchImmediate& value) {
-
+		auto whereToGo = value.getImmediate();
+		auto updatePC = value.performCall() || (value.conditionallyEvaluate() && _conditionRegister) || (!value.conditionallyEvaluate());
+		if (value.performCall()) {
+            // call instruction
+            // figure out where we are going to go, this will cause loads and
+            // incrementation of the instruction pointer.
+            // Once done, we then push the next address following the newly
+            // modified ip to the stack. Then we update the ip of where we are
+            // going to go!
+			pushSubroutineAddress(getPC().getAddress());
+		}
+		if (updatePC) {
+			getPC().setAddress(whereToGo);
+		}
 	}
 
 	void Core::invoke(const Core::Shift& value) {
@@ -312,11 +377,87 @@ namespace cisc0 {
 	}
 
 	void Core::invoke(const Core::ArithmeticRegister& value) {
-
+		auto& dest = getDestination(value);
+		auto& src = getSource(value);
+		using T = decltype(value.getStyle());
+		auto remainderOp = [](auto numerator, auto denominator) {
+			if (denominator == 0) {
+				throw Problem("Divide by zero!");
+			}
+			return numerator % denominator;
+		};
+		auto divOp = [](auto numerator, auto denominator) {
+			if (denominator == 0) {
+				throw Problem("Divide by zero!");
+			}
+			return numerator / denominator;
+		};
+		// TODO: add support for signed operations
+		switch (value.getStyle()) {
+			case T::Min:
+				getValueRegister().setAddress(dest.getAddress() > src.getAddress() ? src.getAddress() : dest.getAddress());
+				break;
+			case T::Max:
+				getValueRegister().setAddress(dest.getAddress() > src.getAddress() ? dest.getAddress() : src.getAddress());
+				break;
+			case T::Rem:
+				dest.setAddress(remainderOp(dest.getAddress(), src.getAddress()));
+				break;
+			case T::Div:
+				dest.setAddress(divOp(dest.getAddress(), src.getAddress()));
+				break;
+			case T::Mul:
+				dest.setAddress(dest.getAddress() * src.getAddress());
+				break;
+			case T::Add:
+				dest.setAddress(dest.getAddress() + src.getAddress());
+				break;
+			case T::Sub:
+				dest.setAddress(dest.getAddress() - src.getAddress());
+				break;
+		}
 	}
 
 	void Core::invoke(const Core::ArithmeticImmediate& value) {
-
+		auto& dest = getDestination(value);
+		auto src = value.getImmediate();
+		using T = decltype(value.getStyle());
+		auto remainderOp = [](auto numerator, auto denominator) {
+			if (denominator == 0) {
+				throw Problem("Divide by zero!");
+			}
+			return numerator % denominator;
+		};
+		auto divOp = [](auto numerator, auto denominator) {
+			if (denominator == 0) {
+				throw Problem("Divide by zero!");
+			}
+			return numerator / denominator;
+		};
+		// TODO: add support for signed operations
+		switch (value.getStyle()) {
+			case T::Min:
+				getValueRegister().setAddress(dest.getAddress() > src ? src : dest.getAddress());
+				break;
+			case T::Max:
+				getValueRegister().setAddress(dest.getAddress() > src ? dest.getAddress() : src);
+				break;
+			case T::Rem:
+				dest.setAddress(remainderOp(dest.getAddress(), src));
+				break;
+			case T::Div:
+				dest.setAddress(divOp(dest.getAddress(), src));
+				break;
+			case T::Mul:
+				dest.setAddress(dest.getAddress() * src);
+				break;
+			case T::Add:
+				dest.setAddress(dest.getAddress() + src);
+				break;
+			case T::Sub:
+				dest.setAddress(dest.getAddress() - src);
+				break;
+		}
 	}
 
 	void Core::invoke(const Core::Compare& value) {
@@ -324,11 +465,65 @@ namespace cisc0 {
 	}
 
 	void Core::invoke(const Core::CompareRegister& value) {
-
+		auto& dest = getDestination(value);
+		auto& src = getSource(value);
+		using T = decltype(value.getStyle());
+		switch (value.getStyle()) {
+			case T::LessThanOrEqualTo:
+				_conditionRegister = dest.getAddress() <= src.getAddress();
+				break;
+			case T::GreaterThanOrEqualTo:
+				_conditionRegister = dest.getAddress() >= src.getAddress();
+				break;
+			case T::LessThan:
+				_conditionRegister = dest.getAddress() < src.getAddress();
+				break;
+			case T::GreaterThan:
+				_conditionRegister = dest.getAddress() > src.getAddress();
+				break;
+			case T::Equals:
+				_conditionRegister = dest.getAddress() == src.getAddress();
+				break;
+			case T::NotEquals:
+				_conditionRegister = dest.getAddress() != src.getAddress();
+				break;
+			default:
+				throw Problem("This should never be thrown! An illegal operation found its way here!");
+		}
 	}
 
 	void Core::invoke(const Core::CompareImmediate& value) {
-
+		auto& dest = getDestination(value);
+		auto src = value.getImmediate();
+		using T = decltype(value.getStyle());
+		switch (value.getStyle()) {
+			case T::LessThanOrEqualTo:
+				_conditionRegister = dest.getAddress() <= src;
+				break;
+			case T::GreaterThanOrEqualTo:
+				_conditionRegister = dest.getAddress() >= src;
+				break;
+			case T::LessThan:
+				_conditionRegister = dest.getAddress() < src;
+				break;
+			case T::GreaterThan:
+				_conditionRegister = dest.getAddress() > src;
+				break;
+			case T::Equals:
+				_conditionRegister = dest.getAddress() == src;
+				break;
+			case T::NotEquals:
+				_conditionRegister = dest.getAddress() != src;
+				break;
+			default:
+				throw Problem("This should never be thrown! An illegal operation found its way here!");
+		}
+	}
+	void Core::invoke(const Core::CompareMoveToCondition& value) {
+		_conditionRegister = getDestination(value).getTruth();
+	}
+	void Core::invoke(const Core::CompareMoveFromCondition& value) {
+		getDestination(value).setInteger(_conditionRegister ? -1 : 0);
 	}
 
 	void Core::invoke(const Core::Operation& value) {

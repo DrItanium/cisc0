@@ -62,6 +62,8 @@ namespace cisc0 {
 			void setInteger(Integer value) noexcept;
 			void increment(Address incrementValue = 1) noexcept;
 			void decrement(Address decrementValue = 1) noexcept;
+			void setLowerHalf(MemoryWord value) noexcept;
+			void setUpperHalf(MemoryWord value) noexcept;
 			MemoryWord getUpperHalf() const noexcept { return MemoryWord((_address & 0xFFFF0000) >> 16); }
 			MemoryWord getLowerHalf() const noexcept { return MemoryWord((_address & 0x0000FFFF)); }
 			void setMask(Address mask) noexcept;
@@ -290,7 +292,18 @@ namespace cisc0 {
 					HasMaskableImmediateValue::extract(a, b, c);
 				}
 			};
-			using Compare = std::variant<CompareRegister, CompareImmediate>;
+			struct CompareMoveFromCondition : Extractable, HasDestination {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractDestination(a);
+				}
+			};
+			struct CompareMoveToCondition : Extractable, HasDestination {
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					extractDestination(a);
+				}
+			};
+
+			using Compare = std::variant<CompareRegister, CompareImmediate, CompareMoveToCondition, CompareMoveToCondition>;
 
 			enum class ArithmeticStyle : byte { 
 				Add,
@@ -378,16 +391,16 @@ namespace cisc0 {
 			using Shift = std::variant<ShiftRegister, ShiftImmediate>;
 			struct BranchGeneric : Extractable {
 				public:
-					bool performLink() const noexcept { return _performLink; }
+					bool conditionallyEvaluate() const noexcept { return _conditionallyEvaluate; }
 					bool performCall() const noexcept { return _performCall; }
-					void setPerformLink(bool value) noexcept { _performLink = value; }
+					void setConditionallyEvaluate(bool value) noexcept { _conditionallyEvaluate = value; }
 					void setPerformCall(bool value) noexcept { _performCall = value; }
 					virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
 						setPerformCall(((a & 0b0000000000100000) >> 5) != 0);
-						setPerformLink(((a & 0b0000000001000000) >> 6) != 0);
+						setConditionallyEvaluate(((a & 0b0000000001000000) >> 6) != 0);
 					}
 				private:
-					bool _performLink = false;
+					bool _conditionallyEvaluate = false;
 					bool _performCall = false;
 			};
 			struct BranchRegister : BranchGeneric, HasDestination {
@@ -482,6 +495,10 @@ namespace cisc0 {
 			MemoryWord popSubroutineWord() noexcept;
 			MemoryWord popParameterWord() noexcept;
 			Address popParameterAddress() noexcept;
+			void pushParameterWord(MemoryWord value) noexcept;
+			void pushParameterAddress(Address value) noexcept;
+			void pushSubroutineWord(MemoryWord value) noexcept;
+			void pushSubroutineAddress(Address value) noexcept;
 		private:
 			MemoryWord loadWord(Address addr);
 			void storeWord(Address addr, MemoryWord value);
@@ -493,6 +510,8 @@ namespace cisc0 {
 			Register& getDestination(const HasDestination&);
 			Register& getSource(const HasSource&);
 			Register& getPC();
+			Register& getValueRegister();
+			Register& getAddressRegister();
 			template<typename T>
 			void variantInvoke(const T& value) {
 				std::visit([this](auto&& x) { invoke(x); }, value);
@@ -524,6 +543,8 @@ namespace cisc0 {
 			void invoke(const Compare& value);
 			void invoke(const CompareRegister& value);
 			void invoke(const CompareImmediate& value);
+			void invoke(const CompareMoveToCondition& value);
+			void invoke(const CompareMoveFromCondition& value);
 			void invoke(const Operation& value);
 			Operation decode();
 			void decode(MemoryWord first, Return& value);
@@ -552,10 +573,13 @@ namespace cisc0 {
 			void decode(MemoryWord first, Compare& value);
 			void decode(MemoryWord first, CompareRegister& value);
 			void decode(MemoryWord first, CompareImmediate& value);
+			void decode(MemoryWord first, CompareMoveToCondition& value);
+			void decode(MemoryWord first, CompareMoveFromCondition& value);
 		private:
 			Address _capacity;
 			std::unique_ptr<Register[]> _registers;
 			std::unique_ptr<MemoryWord[]> _memory;
+			bool _conditionRegister = false;
 			bool _keepExecuting = true;
 	};
 } // end namespace cisc0
