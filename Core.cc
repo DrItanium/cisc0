@@ -138,6 +138,9 @@ namespace cisc0 {
 	}
 
 	void Core::invoke(const Core::Swap& value) {
+		if (value.getDestination() == value.getSource()) {
+			return;
+		}
 		auto& a = getDestination(value);
 		auto& b = getSource(value);
 		auto c = a.getAddress();
