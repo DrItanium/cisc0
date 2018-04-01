@@ -23,18 +23,15 @@ ALL_OBJECTS = ${COMMON_THINGS} \
 			  ${SIMULATOR_OBJECTS} \
 			  ${LINKER_OBJECTS} 
 
-all: options ${ALL_BINARIES}
+all: options forth ${ALL_BINARIES}
 
 docs: ${ALL_BINARIES}
 	@echo "running doxygen"
 	@doxygen
 
 
-libmaya.a: maya
-
 options:
 	@echo syn build options:
-	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "CXXFLAGS = ${CXXFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
@@ -53,11 +50,20 @@ ${LINKER_BINARY}: ${LINKER_OBJECTS}
 	@echo LD $@
 	@${CXX} ${LDFLAGS} -o ${LINKER_BINARY} ${LINKER_OBJECTS}
 
+forth:
+	@cd misc/forth_interpreter/ && ${MAKE} 
+	@cp misc/forth_interpreter/forth .
+
+nuke: clean
+	@echo Nuking...
+	@rm -f forth
+	@cd misc/forth_interpreter/ && ${MAKE} clean
+
 clean:
 	@echo Cleaning...
 	@rm -f ${ALL_OBJECTS} ${ALL_BINARIES}
 
 
-.PHONY: all options clean docs 
+.PHONY: all options clean docs forth
 
 include deps.make

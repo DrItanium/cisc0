@@ -8,14 +8,6 @@ v.img
 
 *.padd
 *.pail
-syn_sim
-syn_asm
-syn_link
-syn_repl
-xsyn_repl
-MoleculeCoreBootstrap
-molecule_bootstrap
-maya
 
 *.tab.c
 *.tab.h
@@ -25,8 +17,7 @@ maya
 .gitconfig
 
 doc/html
-# the include directory is only for termbox because I can't override the value :(
-include/
 
 simcisc0
 linkcisc0
+forth
