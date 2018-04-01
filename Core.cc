@@ -150,7 +150,7 @@ namespace cisc0 {
 	}
 
 	void Core::invoke(const Core::Move& value) {
-		getDestination(value).setAddress(getSource(value).getAddress());
+		getDestination(value).setAddress(getSource(value).getAddress() & value.getExpandedBitmask());
 	}
 
 	void Core::invoke(const Core::Memory& value) {
