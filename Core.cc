@@ -77,8 +77,8 @@ namespace cisc0 {
 			_memory[a] = 0;
 		}
 		auto capacityMask = _capacity - 1;
-		_registers[Core::ArchitectureConstants::InstructionPointer].setMask(capacityMask);
-		_registers[Core::ArchitectureConstants::AddressRegister].setMask(capacityMask);
+		getAddressRegister().setMask(capacityMask);
+		getPC().setMask(capacityMask);
 		_registers[Core::ArchitectureConstants::StackPointer].setMask(capacityMask);
 		_registers[Core::ArchitectureConstants::CallStackPointer].setMask(capacityMask);
 	}
@@ -206,8 +206,8 @@ namespace cisc0 {
 	}
 
 	void Core::invoke(const Core::MemoryStore& value) {
-		auto addr = getRegister<Core::ArchitectureConstants::AddressRegister>().getAddress() + value.getMemoryOffset();
-		auto& val = getRegister<Core::ArchitectureConstants::ValueRegister>();
+		auto addr = getAddressRegister().getAddress() + value.getMemoryOffset();
+		auto& val = getValueRegister();
 		auto lowerMask = value.getLowerMask();
 		auto upperMask = value.getUpperMask();
 		if (lowerMask == 0 && upperMask == 0) {
@@ -233,8 +233,8 @@ namespace cisc0 {
 	}
 
 	void Core::invoke(const Core::MemoryLoad& value) {
-		auto addr = getRegister<Core::ArchitectureConstants::AddressRegister>().getAddress() + value.getMemoryOffset();
-		auto& val = getRegister<Core::ArchitectureConstants::ValueRegister>();
+		auto addr = getAddressRegister().getAddress() + value.getMemoryOffset();
+		auto& val = getValueRegister();
 		bool readLower = false;
 		bool readUpper = false;
 		switch (value.getBitmask()) {
@@ -702,7 +702,11 @@ namespace cisc0 {
 				value = CompareMoveFromCondition();
 				break;
 			default: 
-				value = extractImmediateBit() ? CompareImmediate() : CompareRegister();
+				if (extractImmediateBit(first)) {
+					value = CompareImmediate();
+				} else {
+					value = CompareRegister();
+				}
 				break; 
 		}
 		std::visit([this, first](auto&& value) { decode(first, value); }, value);
@@ -733,30 +737,30 @@ namespace cisc0 {
 		if (in.eof() || in.bad()) {
 			throw Problem("Premature termination during memory word read!");
 		}
-		auto lowest = cisc0::byte(input.get());
+		auto lowest = cisc0::byte(in.get());
 		if (in.eof() || in.bad()) {
 			throw Problem("Premature termination during memory word read!");
 		}
-		auto lower = cisc0::byte(input.get());
+		auto lower = cisc0::byte(in.get());
 		if (in.eof() || in.bad()) {
 			throw Problem("Premature termination during memory word read!");
 		}
-		auto higher = cisc0::byte(input.get());
+		auto higher = cisc0::byte(in.get());
 		if (in.eof() || in.bad()) {
 			throw Problem("Premature termination during memory word read!");
 		}
-		auto highest = cisc0::byte(input.get());
+		auto highest = cisc0::byte(in.get());
 		return cisc0::make(lowest, lower, higher, highest);
 	}
 	MemoryWord readMemoryWord(std::istream& in) {
 		if (in.eof() || in.bad()) {
 			throw Problem("Premature termination during memory word read!");
 		}
-		auto lower = cisc0::byte(input.get());
+		auto lower = cisc0::byte(in.get());
 		if (in.eof() || in.bad()) {
 			throw Problem("Premature termination during memory word read!");
 		}
-		auto higher = cisc0::byte(input.get());
+		auto higher = cisc0::byte(in.get());
 		return cisc0::make(lower, higher);
 	}
 	constexpr byte getLowerHalf(MemoryWord value) noexcept { return byte(value); }
@@ -788,6 +792,13 @@ namespace cisc0 {
 		for (Address a = 0; a < _capacity; ++a) {
 			writeMemoryWord(out, _memory[a]);
 		}
+	}
+
+	Register& Core::getValueRegister() noexcept {
+		return getRegister<Core::ArchitectureConstants::ValueRegister>();
+	}
+	Register& Core::getAddressRegister() noexcept {
+		return getRegister<Core::ArchitectureConstants::AddressRegister>();
 	}
 
 } // end namespace cisc0

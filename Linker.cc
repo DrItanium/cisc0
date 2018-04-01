@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
 			// look at it backwards!
 			core.getRegister(cisc0::byte(0x0F & a._value)).setAddress(a._address);
 		} else {
-			core.storeMemory(a._address, a._value);
+			core.storeWord(a._address, a._value);
 		}
 	}
 	if (!output.empty()) {

@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <variant>
 #include <memory>
+#include "Problem.h"
 
 namespace cisc0 {
 	using Address = uint32_t;
@@ -128,13 +129,7 @@ namespace cisc0 {
 				public:
 					Extractable() = default;
 					~Extractable() = default;
-					virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c ) noexcept = 0;
-					inline void extract(MemoryWord a, MemoryWord b) noexcept {
-						extract(a, b, 0);
-					}
-					inline void extract(MemoryWord a) noexcept {
-						extract(a, 0);
-					}
+					virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept = 0;
 
 			};
 			enum class OperationCode : byte { 
@@ -190,7 +185,7 @@ namespace cisc0 {
 							case 0b1111:
 								return 0xFFFFFFFF;
 							default:
-								throw "Bad Index!";
+								throw Problem("Bad Index, terminating immediately!");
 						}
 					}
 					MemoryWord getLowerMask() const noexcept {
@@ -234,7 +229,7 @@ namespace cisc0 {
 				private:
 					Address _value;
 			};
-			struct HasMaskableImmediateValue : Extractable, HasBitmask, HasImmediateValue {
+			struct HasMaskableImmediateValue : public Extractable, public HasBitmask, public HasImmediateValue {
 				public:
 					using Parent0 = HasBitmask;
 					using Parent1 = HasImmediateValue;
@@ -244,7 +239,7 @@ namespace cisc0 {
 						Parent1::setImmediate(immediate & getExpandedBitmask());
 					}
 
-					virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+					virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 						extractBitmask(a);
 						extractImmediate(b, c);
 					}
@@ -292,14 +287,14 @@ namespace cisc0 {
 				MoveFromCondition, 
 				MoveToCondition, 
 			};
-			struct CompareGeneric  : Extractable, HasDestination, HasStyle<CompareStyle, 0b0000000011100000, 5> {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+			struct CompareGeneric  : public Extractable, public HasDestination, public HasStyle<CompareStyle, 0b0000000011100000, 5> {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					extractDestination(a);
 					extractStyle(a);
 				}
 			};
 			struct CompareRegister : CompareGeneric, HasSource {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					CompareGeneric::extract(a, b, c);
 					extractSource(a);
 				}
@@ -310,18 +305,18 @@ namespace cisc0 {
 					HasMaskableImmediateValue::extract(a, b, c);
 				}
 			};
-			struct CompareMoveFromCondition : Extractable, HasDestination {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+			struct CompareMoveFromCondition : public Extractable, public HasDestination {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					extractDestination(a);
 				}
 			};
-			struct CompareMoveToCondition : Extractable, HasDestination {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+			struct CompareMoveToCondition : public Extractable, public HasDestination {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					extractDestination(a);
 				}
 			};
 
-			using Compare = std::variant<CompareRegister, CompareImmediate, CompareMoveToCondition, CompareMoveToCondition>;
+			using Compare = std::variant<CompareRegister, CompareImmediate, CompareMoveFromCondition, CompareMoveToCondition>;
 
 			enum class ArithmeticStyle : byte { 
 				Add,
@@ -333,7 +328,7 @@ namespace cisc0 {
 				Max,
 			};
 			struct ArithmeticGeneric : Extractable, HasDestination, HasStyle<ArithmeticStyle, 0b0000000011100000, 5> { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					extractStyle(a);
 					extractDestination(a);
 				}
@@ -341,7 +336,7 @@ namespace cisc0 {
 			struct ArithmeticRegister : ArithmeticGeneric, HasSource { 
 				using Parent0 = ArithmeticGeneric;
 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					Parent0::extract(a, b, c);
 					extractSource(a);
 				}
@@ -362,19 +357,19 @@ namespace cisc0 {
 				Not 
 			};
 			struct LogicalGeneric : Extractable, HasDestination, HasStyle<LogicalStyle, 0b0000000011100000, 5> { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					extractDestination(a);
 					extractStyle(a);
 				}
 			};
 			struct LogicalRegister : LogicalGeneric, HasSource { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					LogicalGeneric::extract(a, b, c);
 					extractSource(a);
 				}
 			};
 			struct LogicalImmediate : LogicalGeneric, HasMaskableImmediateValue { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					LogicalGeneric::extract(a, b, c);
 					HasMaskableImmediateValue::extract(a, b, c);
 				}
@@ -390,8 +385,8 @@ namespace cisc0 {
 				private:
 					bool _shiftLeft = false;
 			};
-			struct ShiftRegister : ShiftGeneric, HasSource {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+			struct ShiftRegister : public ShiftGeneric, public HasSource {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					ShiftGeneric::extract(a, b, c);
 					extractSource(a);
 				}
@@ -399,7 +394,7 @@ namespace cisc0 {
 			struct ShiftImmediate : ShiftGeneric {
 				void setShiftAmount(byte value) noexcept { _imm5 = value & 0b00011111; }
 				byte getShiftAmount() const noexcept { return _imm5; }
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					ShiftGeneric::extract(a, b, c);
 					setShiftAmount(byte((a & 0b0000111110000000) >> 7));
 				}
@@ -422,7 +417,7 @@ namespace cisc0 {
 					bool _performCall = false;
 			};
 			struct BranchRegister : BranchGeneric, HasDestination {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					BranchGeneric::extract(a, b, c);
 					extractDestination(a);
 				}
@@ -447,25 +442,25 @@ namespace cisc0 {
 			};
 			// use the destination field to store an offset
 			struct MemoryLoad : MemoryGeneric, HasMemoryOffset<0xF000, 12> {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					MemoryGeneric::extract(a, b, c);
 					extractMemoryOffset(a);
 				}
 			};
 			struct MemoryStore : MemoryGeneric, HasMemoryOffset<0xF000, 12> { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					MemoryGeneric::extract(a, b, c);
 					extractMemoryOffset(a);
 				}
 			};
 			struct MemoryPush : MemoryGeneric, HasDestination { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					MemoryGeneric::extract(a, b, c);
 					extractDestination(a);
 				}
 			};
 			struct MemoryPop : MemoryGeneric, HasDestination {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					MemoryGeneric::extract(a, b, c);
 					extractDestination(a);
 				}
@@ -473,20 +468,20 @@ namespace cisc0 {
 			using Memory = std::variant<MemoryLoad, MemoryStore, MemoryPush, MemoryPop>;
 
 			struct Move : Extractable, HasDestination, HasSource, HasBitmask {
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					extractDestination(a);
 					extractSource(a);
 					extractBitmask(a);
 				}
 			};
 			struct Set : HasDestination, HasMaskableImmediateValue { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					extractDestination(a);
 					HasMaskableImmediateValue::extract(a, b, c);
 				}
 			};
-			struct Swap : Extractable, HasDestination, HasSource { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
+			struct Swap : public Extractable, public HasDestination, public HasSource { 
+				virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
 					extractDestination(a);
 					extractSource(a);
 				}
@@ -508,7 +503,7 @@ namespace cisc0 {
 		public:
 			static constexpr Address defaultMemoryCapacity = 0xFFFFFF + 1;
 			Core(Address memoryCapacity = defaultMemoryCapacity);
-			void storeMemory(Address addr, MemoryWord value);
+			void storeWord(Address addr, MemoryWord value);
 			Address popSubroutineAddress() noexcept;
 			MemoryWord popSubroutineWord() noexcept;
 			MemoryWord popParameterWord() noexcept;
@@ -523,7 +518,6 @@ namespace cisc0 {
 			Register& getRegister(RegisterIndex index);
 		private:
 			MemoryWord loadWord(Address addr);
-			void storeWord(Address addr, MemoryWord value);
 			template<byte index>
 			Register& getRegister() noexcept {
 				return _registers[index & 0x0F];
@@ -531,8 +525,8 @@ namespace cisc0 {
 			Register& getDestination(const HasDestination&);
 			Register& getSource(const HasSource&);
 			Register& getPC();
-			Register& getValueRegister();
-			Register& getAddressRegister();
+			Register& getValueRegister() noexcept;
+			Register& getAddressRegister() noexcept;
 			template<typename T>
 			void variantInvoke(const T& value) {
 				std::visit([this](auto&& x) { invoke(x); }, value);
@@ -598,7 +592,11 @@ namespace cisc0 {
 			void decode(MemoryWord first, CompareMoveFromCondition& value);
 			template<typename T, typename ImmediateType, typename RegisterType>
 			void decodeOnImmediateBit(MemoryWord first, T& value) {
-				value = extractImmediateBit(first) ? ImmediateType() : RegisterType();
+				if (extractImmediateBit(first)) {
+					value = ImmediateType();
+				} else {
+					value = RegisterType();
+				}
 				std::visit([this, first](auto&& value) { decode(first, value); }, value);
 			}
 			template<typename T>
