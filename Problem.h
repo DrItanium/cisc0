@@ -25,11 +25,11 @@
 
 
 // base class of all exceptions to be thrown
-#ifndef IRIS_PROBLEM_H
-#define IRIS_PROBLEM_H
+#ifndef PROBLEM_H
+#define PROBLEM_H
 #include <string>
 #include <iostream>
-namespace syn {
+namespace cisc0 {
 
 	class Problem {
 		public:

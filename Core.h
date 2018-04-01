@@ -33,6 +33,7 @@
 #include <typeinfo>
 #include <cstdint>
 #include <variant>
+#include <memory>
 
 namespace cisc0 {
 	using Address = uint32_t;
@@ -45,6 +46,22 @@ namespace cisc0 {
 	using MemoryWord = HalfAddress;
 	using RegisterIndex = byte;
 	using Bitmask = byte;
+	union Register {
+		public:
+			Register(Address value = 0) : _address(value) { }
+			Register(Integer value) : _integer(value) { }
+			Register(const Register& other) : _address(other._address) { }
+			Address getAddress() const noexcept { return _address; }
+			Integer getInteger() const noexcept { return _integer; }
+			void setAddress(Address value) noexcept { _address = value; }
+			void setInteger(Integer value) noexcept { _integer = value; }
+			bool getTruth() const noexcept { return _address != 0; }
+			void increment(Address mask = 0xFFFFFFFF, Address incrementValue = 1) noexcept;
+			void decrement(Address mask = 0xFFFFFFFF, Address decrementValue = 1) noexcept;
+		private:
+			Address _address;
+			Integer _integer;
+	};
 	class Core {
 		public:
 			struct Extractable {
@@ -406,10 +423,8 @@ namespace cisc0 {
 			struct Return : Extractable { 
 				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override { }
 			};
-			struct Terminate : Extractable, HasDestination { 
-				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override {
-					extractDestination(a);
-				}
+			struct Terminate : Extractable { 
+				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override { }
 			};
 			using Misc = std::variant<Return, Terminate>;
 
@@ -419,6 +434,12 @@ namespace cisc0 {
 			Core(Address memoryCapacity = defaultMemoryCapacity);
 			void storeMemory(Address addr, MemoryWord value);
 		private:
+			MemoryWord loadWord(Address addr);
+			void storeWord(Address addr, MemoryWord value);
+			Register& getRegister(RegisterIndex index);
+			Register& getDestination(const HasDestination&);
+			Register& getSource(const HasSource&);
+			Register& getPC();
 			template<typename T>
 			void variantInvoke(const T& value) {
 				std::visit([this](auto&& x) { invoke(x); }, value);
@@ -478,6 +499,11 @@ namespace cisc0 {
 			void decode(MemoryWord first, Compare& value);
 			void decode(MemoryWord first, CompareRegister& value);
 			void decode(MemoryWord first, CompareImmediate& value);
+		private:
+			Address _capacity;
+			std::unique_ptr<Register[]> _registers;
+			std::unique_ptr<MemoryWord[]> _memory;
+			bool _keepExecuting = true;
 	};
 } // end namespace cisc0
 #endif
