@@ -151,10 +151,15 @@ enum}
 : set-source-and-dest ( src dest -- encoded ) set-destination swap set-source combine2 ;
 : word: ( -- n ) 0 ;
 : word, ( a b -- c ) combine2 ;
-: ->destination ( destination code -- encoded ) swap to-destination word, ;
-: ->source ( destination code -- encoded ) swap to-source word, ;
+: ->highest4 ( imm4 code -- encoded ) swap to-highest4 word, ;
+: ->destination ( destination code -- encoded ) ->highest4 ;
+: ->source ( destination code -- encoded ) swap set-source word, ;
 : ->lower4 ( imm4 code -- encoded ) swap to-lower4 word, ;
+: ->style2 ( imm2 code -- encoded ) swap style2 word, ;
+: ->style3 ( imm3 code -- encoded ) swap style3 word, ;
+: ->style4 ( imm4 code -- encoded ) ->lower4 ;
 : ->inst ( opcode -- encoded ) word: swap set-opcode word, ;
+: ->bitmask ( bitmask code -- encoded ) swap to-higher4 word, ;
 : ->done ( instruction -- masked ) mask-imm16 ;
 : !move ( src dest bitmask -- encoded ) 
   op-move ->inst ( src dest bitmask inst )
@@ -180,6 +185,36 @@ enum}
 
 : !nop ( -- encoded ) r0 r0 !swap ;
 
+: !misc ( style -- encoded ) op-misc ->inst ->lower4 ->done ;
+: !ret ( -- encoded ) style-return !misc ;
+: !terminate ( -- encoded ) style-terminate !misc ;
+
+: !memory ( dest/offset bitmask kind2 -- encoded ) 
+  op-memory ->inst
+  ->style2 
+  ->bitmask
+  ->highest4 \ could be a destination register or integer offset
+  ->done ;
+: !load ( offset bitmask -- encoded ) style-load !memory ;
+: !load8 ( offset -- encoded ) 0m0001 !load ;
+: !load8up ( offset -- encoded ) 0m0010 !load ;
+: !load16 ( offset -- encoded ) 0m0011 !load ;
+: !load16up ( offset -- encoded ) 0m1100 !load ;
+: !load32 ( offset -- encoded ) 0m1111 !load ;
+: !store ( offset bitmask -- encoded ) style-store !memory ;
+: !store8 ( offset -- encoded ) 0m0001 !store ;
+: !store8up ( offset -- encoded ) 0m0010 !store ;
+: !store16 ( offset -- encoded ) 0m0011 !store ;
+: !store16up ( offset -- encoded ) 0m1100 !store ;
+: !store32 ( offset -- encoded ) 0m1111 !store ;
+: !push ( dest bitmask -- encoded ) style-push !memory ;
+: !push16 ( dest -- encoded ) 0m0011 !push ;
+: !push16up ( dest -- encoded ) 0m1100 !push ;
+: !push32 ( dest -- encoded ) 0m1111 !push ;
+: !pop ( dest bitmask -- encoded ) style-pop !memory ;
+: !pop16 ( dest -- encoded ) 0m0011 !pop ;
+: !pop16up ( dest -- encoded ) 0m1100 !pop ;
+: !pop32 ( dest -- encoded ) 0m1111 !pop ;
 
 close-input-file
 
