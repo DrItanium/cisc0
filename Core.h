@@ -520,6 +520,7 @@ namespace cisc0 {
 			void run();
 			void install(std::istream& in);
 			void dump(std::ostream& out);
+			Register& getRegister(RegisterIndex index);
 		private:
 			MemoryWord loadWord(Address addr);
 			void storeWord(Address addr, MemoryWord value);
@@ -527,7 +528,6 @@ namespace cisc0 {
 			Register& getRegister() noexcept {
 				return _registers[index & 0x0F];
 			}
-			Register& getRegister(RegisterIndex index);
 			Register& getDestination(const HasDestination&);
 			Register& getSource(const HasSource&);
 			Register& getPC();
