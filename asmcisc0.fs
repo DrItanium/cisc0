@@ -64,14 +64,32 @@ enum}
 : offset ( index -- encoded ) imm4 12 <<u ;
 
 {enum
-: equals ( -- n ) literal ; enum,
-: not-equals ( -- n ) literal ; enum,
-: less-than ( -- n ) literal ; enum,
-: greater-than ( -- n ) literal ; enum,
-: less-than-or-equal-to ( -- n ) literal ; enum,
-: greater-than-or-equal-to ( -- n ) literal ; enum,
-: move-from-condition ( -- n ) literal ; enum,
-: move-to-condition ( -- n ) literal ;
+: style-equals ( -- n ) literal ; enum,
+: style-not-equals ( -- n ) literal ; enum,
+: style-less-than ( -- n ) literal ; enum,
+: style-greater-than ( -- n ) literal ; enum,
+: style-less-than-or-equal-to ( -- n ) literal ; enum,
+: style-greater-than-or-equal-to ( -- n ) literal ; enum,
+: style-move-from-condition ( -- n ) literal ; enum,
+: style-move-to-condition ( -- n ) literal ;
+enum}
+
+{enum
+: style-add ( -- n ) literal ; enum,
+: style-sub ( -- n ) literal ; enum,
+: style-mul ( -- n ) literal ; enum,
+: style-div ( -- n ) literal ; enum,
+: style-rem ( -- n ) literal ; enum,
+: style-min ( -- n ) literal ; enum,
+: style-max ( -- n ) literal ; 
+enum}
+
+{enum
+: style-and ( -- n ) literal ; enum,
+: style-or ( -- n ) literal ; enum,
+: style-xor ( -- n ) literal ; enum,
+: style-nand ( -- n ) literal ; enum,
+: style-not ( -- n ) literal ; 
 enum}
 
 close-input-file
