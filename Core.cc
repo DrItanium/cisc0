@@ -608,7 +608,7 @@ namespace cisc0 {
 	}
 
 	void Core::decode(MemoryWord first, Core::Memory& value) {
-		auto target = extractStyle<Core::MemoryStyle>(first, 0b110000, 4);
+		auto target = extractStyle<Core::MemoryStyle>(first, 0b1100000, 5);
 		using T = decltype(target);
 		switch (target) {
 			case T::Push:
