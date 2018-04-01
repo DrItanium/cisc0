@@ -26,16 +26,16 @@ enum}
 : val ( -- n ) r11 ;
 
 {enum
-: opmemory ( -- n ) literal ; enum,
-: oparithmetic ( -- n ) literal ; enum,
-: opshift ( -- n ) literal ; enum,
-: oplogical ( -- n ) literal ; enum,
-: opcompare ( -- n ) literal ; enum,
-: opbranch ( -- n ) literal ; enum,
-: opmove ( -- n ) literal ; enum,
-: opset ( -- n ) literal ; enum,
-: opswap ( -- n ) literal ; enum,
-: opmisc ( -- n ) literal ; 
+: op-memory ( -- n ) literal ; enum,
+: op-arithmetic ( -- n ) literal ; enum,
+: op-shift ( -- n ) literal ; enum,
+: op-logical ( -- n ) literal ; enum,
+: op-compare ( -- n ) literal ; enum,
+: op-branch ( -- n ) literal ; enum,
+: op-move ( -- n ) literal ; enum,
+: op-set ( -- n ) literal ; enum,
+: op-swap ( -- n ) literal ; enum,
+: op-misc ( -- n ) literal ; 
 enum}
 
 {enum
@@ -57,11 +57,6 @@ enum}
 : 0m1111 ( -- n ) literal ;
 enum}
 
-: immediate ( -- n ) 1 ;
-: imm4 ( index -- encoded ) 0xF bitwise-andu ;
-: destination ( index -- encoded ) imm4 12 <<u ;
-: source ( index -- encoded ) imm4 8 <<u ;
-: offset ( index -- encoded ) imm4 12 <<u ;
 
 {enum
 : style-equals ( -- n ) literal ; enum,
@@ -91,6 +86,98 @@ enum}
 : style-nand ( -- n ) literal ; enum,
 : style-not ( -- n ) literal ; 
 enum}
+
+{enum
+: style-load ( -- n ) literal ; enum,
+: style-store ( -- n ) literal ; enum,
+: style-push ( -- n ) literal ; enum,
+: style-pop ( -- n ) literal ; 
+enum}
+
+{enum 
+: style-return ( -- n ) literal ; enum,
+: style-terminate ( -- n ) literal ; 
+enum}
+
+( output formatting )
+: mask-imm32 ( index -- encoded ) 0xFFFFFFFF bitwise-andu ;
+: mask-imm16 ( index -- encoded ) 0xFFFF bitwise-andu ;
+: mask-imm8 ( index -- encoded ) 0xFF bitwise-andu ;
+: mask-imm5 ( index -- encoded ) 0x1F bitwise-andu ;
+: mask-imm4 ( index -- encoded ) 0xF bitwise-andu ;
+: mask-imm3 ( index -- encoded ) 0x7 bitwise-andu ;
+: mask-imm2 ( index -- encoded ) 0x3 bitwise-andu ;
+: mask-flag ( index -- encoded ) 0x1 bitwise-andu ;
+: to-position ( value starting-pos -- shifted ) <<u ;
+: imm4-to-position ( value start -- shifted ) swap mask-imm4 swap to-position ;
+: to-highest4 ( value -- encoded ) 12 imm4-to-position ;
+: to-higher4 ( value -- encoded ) 8 imm4-to-position ;
+: to-lower4 ( value -- encoded ) 4 imm4-to-position ;
+: to-lowest4 ( value -- encoded ) mask-imm4 ;
+: start-at-pos5 ( value -- encoded ) 5 to-position ;
+: style3 ( index -- encoded ) mask-imm3 start-at-pos5 ;
+: style2 ( index -- encoded ) mask-imm2 start-at-pos5 ;
+: style4 ( index -- encoded ) mask-imm4 4 to-position ;
+: set-flag ( flag position -- encoded ) swap mask-flag swap to-position ;
+: set-bit-pos4 ( flag -- encoded ) 4 set-flag ;
+: set-bit-pos5 ( flag -- encoded ) 5 set-flag ;
+: set-bit-pos6 ( flag -- encoded ) 6 set-flag ;
+: immediate-bit ( flag -- encoded ) set-bit-pos4 ;
+: direction-bit ( flag -- encoded ) set-bit-pos5 ;
+: link-bit ( flag -- encoded ) set-bit-pos5 ;
+: cond-bit ( flag -- encoded ) set-bit-pos6 ;
+: immediate-form ( -- encoded ) true immediate-bit ;
+: indirect-form ( -- encoded ) false immediate-bit ;
+: direction-left ( -- encoded ) true direction-bit ;
+: direction-right ( -- encoded ) false direction-bit ;
+: link ( -- encoded ) true link-bit ;
+: nolink ( -- encoded ) false link-bit ;
+: conditional ( -- encoded ) true cond-bit ;
+: unconditional ( -- encoded ) false cond-bit ;
+
+: combine2 ( a b -- c ) bitwise-oru ;
+: combine3 ( a b c -- d ) 
+  combine2 ( a e )
+  combine2 ( d ) ;
+
+: combine4 ( a b c d -- e ) 
+  combine3 ( a f )
+  combine2 ( e ) ;
+
+: set-destination ( index -- encoded ) to-highest4 ;
+: set-source ( index -- encoded ) to-higher4 ;
+: set-offset ( index -- encoded ) to-highest4 ;
+: set-opcode ( index -- encoded ) to-lowest4 ;
+: set-source-and-dest ( src dest -- encoded ) set-destination swap set-source combine2 ;
+: word: ( -- n ) 0 ;
+: word, ( a b -- c ) combine2 ;
+: ->opcode ( code op -- encoded ) set-opcode word, ;
+: ->destination ( destination code -- encoded ) swap to-destination word, ;
+: ->source ( destination code -- encoded ) swap to-source word, ;
+: ->lower4 ( imm4 code -- encoded ) swap to-lower4 word, ;
+: !move ( src dest bitmask -- encoded ) 
+  word: ( src dest bitmask 0 )
+  op-move ->opcode ( src dest bitmask inst )
+  ->lower4 ( src dest inst )
+  ->destination ( src inst )
+  ->source ( inst ) 
+	;
+
+
+: !move8 ( src dest -- encoded ) 0m0001 !move ;
+: !move16 ( src dest -- encoded ) 0m0011 !move ;
+: !move24 ( src dest -- encoded ) 0m0111 !move ;
+: !move-upper16 ( src dest -- encoded ) 0m1100 !move ;
+: !move-lower16 ( src dest -- encoded ) !move16 ;
+: !move32 ( src dest -- encoded ) 0m1111 !move ;
+: !move0 ( src dest -- encoded ) 0m0000 !move ;
+
+: !swap ( src dest -- encoded ) 
+  word: ( src dest 0 )
+  op-swap ->opcode word, ( src dest op )
+  swap ->destination word, ( src op )
+  swap ->source ( inst esrc )
+  word; ; 
 
 close-input-file
 
