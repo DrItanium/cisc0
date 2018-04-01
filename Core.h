@@ -42,14 +42,7 @@ namespace cisc0 {
 	using HalfInteger = int16_t;
 	using DoubleAddress = uint64_t;
 	using DoubleInteger = int64_t;
-	union Word {
-		Word() : address(0) { }
-		Word(Address a) : address(a) { }
-		Word(Integer i) : integer(i) { }
-		Word(const Word& other) : Word(other.address) { }
-		Address address;
-		Integer integer;
-	};
+	using MemoryWord = HalfAddress;
 	using RegisterIndex = byte;
 	using Bitmask = byte;
 	class Core {
@@ -64,14 +57,52 @@ namespace cisc0 {
 				Move, 
 				Set, 
 				Swap, 
-				Return, 
-				Complex, 
+				Misc, 
 			};
 			class HasBitmask {
 				public:
 					HasBitmask() : _mask(0) { }
 					Bitmask getBitmask() const noexcept { return _mask; }
 					void setBitmask(Bitmask mask) noexcept { _mask = mask & 0x0F; }
+					void extractBitmask(MemoryWord word) noexcept { setBitmask(Bitmask((word & 0x0F00) >> 8)); }
+					Address getExpandedBitmask() const noexcept {
+						switch (_mask) {
+							case 0b0000: 
+								return 0x00000000;
+							case 0b0001: 
+								return 0x000000FF;
+							case 0b0010:
+								return 0x0000FF00;
+							case 0b0011:
+								return 0x0000FFFF;
+							case 0b0100:
+								return 0x00FF0000;
+							case 0b0101:
+								return 0x00FF00FF;
+							case 0b0110:
+								return 0x00FFFF00;
+							case 0b0111:
+								return 0x00FFFFFF;
+							case 0b1000:
+								return 0xFF000000;
+							case 0b1001:
+								return 0xFF0000FF;
+							case 0b1010:
+								return 0xFF00FF00;
+							case 0b1011:
+								return 0xFF00FFFF;
+							case 0b1100:
+								return 0xFFFF0000;
+							case 0b1101:
+								return 0xFFFF00FF;
+							case 0b1110:
+								return 0xFFFFFF00;
+							case 0b1111:
+								return 0xFFFFFFFF;
+							default:
+								throw "Bad Index!";
+						}
+					}
 				private:
 					Bitmask _mask;
 			};
@@ -80,6 +111,7 @@ namespace cisc0 {
 					HasDestination() : _dest(0) { }
 					RegisterIndex getDestination() const noexcept { return _dest; }
 					void setDestination(RegisterIndex dest) noexcept { _dest = dest & 0x0F; }
+					void extractDestination(MemoryWord word) noexcept { setDestination(RegisterIndex((word & 0xF000) >> 12)); }
 				private:
 					RegisterIndex _dest;
 			};
@@ -88,6 +120,7 @@ namespace cisc0 {
 					HasSource() : _src(0) { }
 					RegisterIndex getSource() const noexcept { return _src; }
 					void setSource(RegisterIndex src) noexcept { _src = src & 0x0F; }
+					void extractSource(MemoryWord word) noexcept { setSource(RegisterIndex((word & 0x0F00) >> 8)); }
 				private:
 					RegisterIndex _src;
 			};
@@ -96,11 +129,26 @@ namespace cisc0 {
 				public:
 					HasImmediateValue() : _value(0) { }
 					Address getImmediate() const noexcept { return _value; }
-					void setImmediate(Address immediate) noexcept  { _value = immediate; }
+					virtual void setImmediate(Address immediate) noexcept  { _value = immediate; }
+					void extractImmediate(MemoryWord lower, MemoryWord upper) noexcept {
+						auto up = Address(upper) << 16;
+						auto bot = Address(lower);
+						setImmediate(up | bot);
+					}
 				private:
 					Address _value;
 			};
-			template<typename S>
+			class HasMaskableImmediateValue : public HasBitmask, HasImmediateValue {
+				public:
+					using Parent0 = HasBitmask;
+					using Parent1 = HasImmediateValue;
+				public:
+					HasMaskableImmediateValue() { };
+					virtual void setImmediate(Address immediate) noexcept override {
+						Parent1::setImmediate(immediate & getExpandedBitmask());
+					}
+			};
+			template<typename S, MemoryWord mask, byte shift>
 			class HasStyle {
 					static_assert(std::is_enum_v<S>, "HasStyle must be provided with an enum!");
 				public:
@@ -108,13 +156,24 @@ namespace cisc0 {
 					HasStyle() : _value(static_cast<S>(0)) { }
 					Style getStyle() const noexcept { return _value; }
 					void setStyle(Style s) noexcept { _value = s; }
+					void extractStyle(MemoryWord value) noexcept { setStyle(static_cast<Style>((value & mask) >> shift)); }
 				private:
 					Style _value;
 			};
 
-			struct Set : HasDestination, HasBitmask, HasImmediateValue { };
-			struct Swap : HasDestination, HasSource { };
-			struct Memory : HasDestination, HasSource, HasBitmask { };
+			template<MemoryWord mask, byte shift>
+			class HasMemoryOffset {
+				public:
+					HasMemoryOffset() : _value(0) { }
+					byte getMemoryOffset() const noexcept { return _value; }
+					void setMemoryOffset(byte v) noexcept { _value = v; }
+					void extract(MemoryWord value) noexcept {
+						setMemoryOffset(byte((value & mask) >> shift));
+					}
+				private:
+					byte _value;
+			};
+
 
 			enum class CompareStyle : byte { 
 				Equals, 
@@ -126,9 +185,9 @@ namespace cisc0 {
 				MoveFromCondition, 
 				MoveToCondition, 
 			};
-			struct CompareGeneric  : HasDestination, HasStyle<CompareStyle> { };
+			struct CompareGeneric  : HasDestination, HasStyle<CompareStyle, 0b0000000011100000, 5> { };
 			struct CompareRegister : CompareGeneric, HasSource { };
-			struct CompareImmediate : CompareGeneric, HasBitmask, HasImmediateValue  { };
+			struct CompareImmediate : CompareGeneric, HasMaskableImmediateValue { };
 			using Compare = std::variant<CompareRegister, CompareImmediate>;
 
 			enum class ArithmeticStyle : byte { 
@@ -140,9 +199,9 @@ namespace cisc0 {
 				Min,
 				Max,
 			};
-			struct ArithmeticGeneric : HasDestination, HasStyle<ArithmeticStyle> { };
+			struct ArithmeticGeneric : HasDestination, HasStyle<ArithmeticStyle, 0b0000000011100000, 5> { };
 			struct ArithmeticRegister : ArithmeticGeneric, HasSource { };
-			struct ArithmeticImmediate : ArithmeticGeneric, HasBitmask, HasImmediateValue { };
+			struct ArithmeticImmediate : ArithmeticGeneric, HasMaskableImmediateValue { };
 			using Arithmetic = std::variant<ArithmeticRegister, ArithmeticImmediate>;
 			enum class LogicalStyle : byte { 
 				And, 
@@ -151,9 +210,9 @@ namespace cisc0 {
 				Nand, 
 				Not 
 			};
-			struct LogicalGeneric : HasDestination, HasStyle<LogicalStyle> { };
+			struct LogicalGeneric : HasDestination, HasStyle<LogicalStyle, 0b0000000011100000, 5> { };
 			struct LogicalRegister : LogicalGeneric, HasSource { };
-			struct LogicalImmediate : LogicalGeneric, HasBitmask, HasImmediateValue { };
+			struct LogicalImmediate : LogicalGeneric, HasMaskableImmediateValue { };
 			using Logical = std::variant<LogicalRegister, LogicalImmediate>;
 			struct ShiftGeneric : HasDestination {
 				bool shiftLeft() const noexcept { return _shiftLeft; }
@@ -169,6 +228,48 @@ namespace cisc0 {
 					byte _imm5;
 			};
 			using Shift = std::variant<ShiftRegister, ShiftImmediate>;
+			struct BranchGeneric {
+				public:
+					bool performLink() const noexcept { return _performLink; }
+					bool performCall() const noexcept { return _performCall; }
+					void setPerformLink(bool value) noexcept { _performLink = value; }
+					void setPerformCall(bool value) noexcept { _performCall = value; }
+				private:
+					bool _performLink = false;
+					bool _performCall = false;
+			};
+			struct BranchRegister : BranchGeneric, HasDestination { };
+			struct BranchImmediate : BranchGeneric, HasImmediateValue { };
+			using Branch = std::variant<BranchRegister, BranchImmediate>;
+			enum class MemoryStyle : byte {
+				Load,
+				Store,
+				Push,
+				Pop,
+			};
+			struct MemoryGeneric : HasBitmask {
+				bool indirectBitSet() const noexcept { return _indirect; }
+				void setIndirectBit(bool v) noexcept { _indirect = v; }
+				private:
+					bool _indirect = false;
+			};
+			// use the destination field to store an offset
+			struct MemoryLoad : MemoryGeneric, HasMemoryOffset<0xF000, 12> { };
+			struct MemoryStore : MemoryGeneric, HasMemoryOffset<0xF000, 12> { };
+			struct MemoryPush : MemoryGeneric, HasDestination { };
+			struct MemoryPop : MemoryGeneric, HasDestination { };
+			using Memory = std::variant<MemoryLoad, MemoryStore, MemoryPush, MemoryPop>;
+
+			struct Move : HasDestination, HasSource, HasBitmask { };
+			struct Set : HasDestination, HasBitmask, HasImmediateValue { };
+			struct Swap : HasDestination, HasSource { };
+			enum class MiscStyle {
+				Return,
+				Terminate,
+			};
+			struct Return { };
+			struct Terminate : HasDestination { };
+			using Misc = std::variant<Return, Terminate>;
 		public:
 			
 	};
