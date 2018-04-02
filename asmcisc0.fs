@@ -183,7 +183,7 @@ variable current-address
   ;
 
 : deflabel ( -- ) variable ;
-: .label ( -- variable ) variable ;
+: .label ( -- variable ) variable$ ;
 : is-here ( variable -- ) .here swap ! ;
 
 
