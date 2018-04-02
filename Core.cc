@@ -133,6 +133,15 @@ namespace cisc0 {
 		_keepExecuting = false;
 	}
 
+    void Core::invoke(const Core::PutCharacter& value) {
+        std::cout.put(char(getDestination(value).getInteger()));
+    }
+
+    void Core::invoke(const Core::GetCharacter& value) {
+        auto& dest = getDestination(value);
+        dest.setInteger(Integer(std::cin.get()));
+    }
+
 	void Core::invoke(const Core::Misc& value) {
 		variantInvoke(value);
 	}
@@ -580,6 +589,12 @@ namespace cisc0 {
 	void Core::decode(MemoryWord first, Core::Return& value) { }
 
 	void Core::decode(MemoryWord first, Core::Terminate& value) { }
+    void Core::decode(MemoryWord first, Core::GetCharacter& value) { 
+        value.extract(first); 
+    }
+    void Core::decode(MemoryWord first, Core::PutCharacter& value) { 
+        value.extract(first); 
+    }
 
 	constexpr Core::MiscStyle getMiscStyle(MemoryWord word) noexcept {
 		return Core::MiscStyle((0b11110000 & word) >> 4);
@@ -593,9 +608,16 @@ namespace cisc0 {
 			case T::Return:
 				value = Core::Return();
 				break;
+            case T::GetCharacter:
+                value = Core::GetCharacter();
+                break;
+            case T::PutCharacter:
+                value = Core::PutCharacter();
+                break;
 			default:
 				throw Problem("Undefined or unimplemented misc operation!");
 		}
+        std::visit([this, first](auto&& x) { decode(first, x); }, value);
 	}
 
 	void Core::decode(MemoryWord first, Core::Swap& value) {

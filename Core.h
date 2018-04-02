@@ -490,6 +490,8 @@ namespace cisc0 {
 			enum class MiscStyle {
 				Return,
 				Terminate,
+                PutCharacter,
+                GetCharacter,
 			};
 			struct Return : Extractable { 
 				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override { }
@@ -497,7 +499,17 @@ namespace cisc0 {
 			struct Terminate : Extractable { 
 				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override { }
 			};
-			using Misc = std::variant<Return, Terminate>;
+            struct PutCharacter : Extractable, HasDestination {
+                virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
+                    extractDestination(a);
+                }
+            };
+            struct GetCharacter : Extractable, HasDestination {
+                virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
+                    extractDestination(a);
+                }
+            };
+			using Misc = std::variant<Return, Terminate, PutCharacter, GetCharacter>;
 
 			using Operation = std::variant<Compare, Arithmetic, Logical, Shift, Branch, Memory, Move, Set, Swap, Misc>;
 		public:
@@ -534,6 +546,8 @@ namespace cisc0 {
 			MemoryWord nextWord();
 			void invoke(const Return& value);
 			void invoke(const Terminate& value);
+            void invoke(const PutCharacter& value);
+            void invoke(const GetCharacter& value);
 			void invoke(const Misc& value);
 			void invoke(const Swap& value);
 			void invoke(const Set& value);
@@ -564,6 +578,8 @@ namespace cisc0 {
 			Operation decode();
 			void decode(MemoryWord first, Return& value);
 			void decode(MemoryWord first, Terminate& value);
+			void decode(MemoryWord first, GetCharacter& value);
+			void decode(MemoryWord first, PutCharacter& value);
 			void decode(MemoryWord first, Misc& value);
 			void decode(MemoryWord first, Swap& value);
 			void decode(MemoryWord first, Set& value);
