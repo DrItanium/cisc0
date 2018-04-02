@@ -299,18 +299,13 @@ enum}
 : !shift-right-immediate ( imm5 dest -- ) right !shift-immediate ;
 
 : !2* ( dest -- ) 1 swap !shift-left-immediate ;
-: !double ( dest -- ) !2* ;
 : !2/ ( dest -- ) 1 swap !shift-right-immediate ;
-: !halve ( dest -- ) !2/ ;
 : !4* ( dest -- ) 2 swap !shift-left-immediate ;
 : !4/ ( dest -- ) 2 swap !shift-right-immediate ;
-: !quarter ( dest -- ) !4/ ;
 : !8* ( dest -- ) 3 swap !shift-left-immediate ;
 : !8/ ( dest -- ) 3 swap !shift-right-immediate ;
-: !eighth ( dest -- ) !8/ ;
 : !16* ( dest -- ) 4 swap !shift-left-immediate ;
 : !16/ ( dest -- ) 4 swap !shift-right-immediate ;
-: !sixteenth ( dest -- ) !16/ ;
 
 : ->branch ( body imm? -- ) 
   op-branch ->inst ( b i op )
@@ -428,12 +423,14 @@ enum}
 : !muli24 ( immediate dest -- ) 0m0111 !muli ;
 : !muli16 ( immediate dest -- ) 0m0011 !muli ;
 : !muli8  ( immediate dest -- ) 0m0001 !muli ;
+
 : !div ( src dest -- ) style-div !arithmetic ;
 : !divi ( immediate dest bitmask -- ) style-div !arithmetic-immediate ;
 : !divi32 ( immediate dest -- ) 0m1111 !divi ;
 : !divi24 ( immediate dest -- ) 0m0111 !divi ;
 : !divi16 ( immediate dest -- ) 0m0011 !divi ;
 : !divi8  ( immediate dest -- ) 0m0001 !divi ;
+
 : !rem ( src dest -- ) style-rem !arithmetic ;
 : !remi ( immediate dest bitmask -- ) style-rem !arithmetic-immediate ;
 : !remi32 ( immediate dest -- ) 0m1111 !remi ;
@@ -455,12 +452,48 @@ enum}
 : !maxi16 ( immediate dest -- ) 0m0011 !maxi ;
 : !maxi8  ( immediate dest -- ) 0m0001 !maxi ;
 
-: !incr   ( dest -- ) 1 swap !addi8 ;
-: !decr   ( dest -- ) 1 swap !subi8 ;
+: !1+ ( dest -- ) 1 swap !addi8 ;
+: !1- ( dest -- ) 1 swap !subi8 ;
+: !2+ ( dest -- ) 2 swap !addi8 ;
+: !2- ( dest -- ) 2 swap !addi8 ;
+: !4+ ( dest -- ) 4 swap !addi8 ;
+: !4- ( dest -- ) 4 swap !addi8 ;
+: !8+ ( dest -- ) 8 swap !addi8 ;
+: !8- ( dest -- ) 8 swap !addi8 ;
+
+: !three-operand-form ( src1 dest -- dest )
+  tuck ( src2 dest src1 dest )
+  !move32 \ transfer src1 to the destination
+  ;
+: !add3 ( src2 src1 dest -- )
+  !three-operand-form 
+  !add ;
+
+: !sub3 ( src2 src1 dest -- )
+  !three-operand-form 
+  !sub ;
+
+: !mul3 ( src2 src1 dest -- ) 
+  !three-operand-form 
+  !mul ;
+
+: !div3 ( src2 src1 dest -- ) 
+  !three-operand-form 
+  !div ;
+
+: !rem3 ( src2 src1 dest -- ) 
+  !three-operand-form 
+  !rem ;
+
+: !max3 ( src2 src1 dest -- ) 
+  !three-operand-form 
+  !max ;
+
+: !min3 ( src2 src1 dest -- ) 
+  !three-operand-form 
+  !min ;
 
 
-\ set is a little strange since we have to be able to decompose the instruction
-\ into multiple 16-bit words based on the bitmask
 
 close-input-file
 
