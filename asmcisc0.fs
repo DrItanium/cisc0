@@ -76,10 +76,6 @@ enum}
 
 
 
-{enum 
-: style-return ( -- n ) literal ; enum,
-: style-terminate ( -- n ) literal ; 
-enum}
 
 ( output formatting )
 : mask-imm32 ( index -- encoded ) 0xFFFFFFFF bitwise-andu ;
@@ -221,9 +217,25 @@ variable current-address
 
 : !nop ( -- ) r0 r0 !swap ;
 
-: !misc ( style -- ) op-misc ->inst ->lower4 ->done ;
-: !ret ( -- ) style-return !misc ;
-: !terminate ( -- ) style-terminate !misc ;
+{enum 
+: style-return ( -- n ) literal ; enum,
+: style-terminate ( -- n ) literal ; enum,
+: style-putc ( -- n ) literal ; enum,
+: style-getc ( -- n ) literal ; 
+enum}
+: !misc ( body style -- ) 
+  op-misc ->inst ( body style op )
+  ->lower4 ( body op )
+  word, ( op )
+  ->done ;
+: !ret ( -- ) 0 style-return !misc ;
+: !terminate ( -- ) 0 style-terminate !misc ;
+: !getc ( dest -- ) 
+  0 ->destination 
+  style-getc !misc ;
+: !putc ( dest -- )
+  0 ->destination
+  style-putc !misc ;
 
 {enum
 : style-load ( -- n ) literal ; enum,
