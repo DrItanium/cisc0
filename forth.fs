@@ -46,7 +46,7 @@ func;
 
 .label PrintLine func:
     ( a -- )
-    PrintString !cul
+    PrintString !cuv
     !put-cr 
     func;
 
