@@ -183,7 +183,7 @@ variable current-address
   ;
 
 : deflabel ( -- ) variable ;
-: .label ( -- variable ) variable$ ;
+: .label ( -- variable ) variable ;
 : is-here ( variable -- ) .here swap ! ;
 
 
@@ -327,7 +327,7 @@ enum}
 
 \ flag order does not matter but provide macros
 : !jump-unconditional-indirect ( dest -- ) unconditional !jump-indirect ;
-: !jump-conditional-indirect ( dest -- ) conditional !jump-indirect;
+: !jump-conditional-indirect ( dest -- ) conditional !jump-indirect ;
 : !jump-unconditional ( imm -- ) unconditional !jump ;
 : !jump-conditional ( imm -- ) conditional !jump ;
 : !call-unconditional-indirect ( dest -- ) unconditional !call-indirect ;
@@ -357,11 +357,11 @@ enum}
   swap ( upper value )
   get-lower-half ( upper lower )
   ;
-: emit-data16-on-true ( value cond -- ) if .data16 else drop then ;
+: emit-word16-on-true ( value cond -- ) if .word16 else drop then ;
 : emit-immediate ( immediate -- ) 
   split-into-halves
-  current-bitmask @ lower-half? emit-data16-on-true 
-  current-bitmask @ upper-half? emit-data16-on-true ;
+  current-bitmask @ lower-half? emit-word16-on-true 
+  current-bitmask @ upper-half? emit-word16-on-true ;
 
 : !set ( imm dest mask -- )
   ->set \ setup the initial word 
@@ -632,12 +632,12 @@ enum}
 
 : 0swap ( a -- 0 a ) 0 swap ;
 : 0swap0m ( a -- 0 a 0m0000 ) 0swap 0m0000 ;
-: !eqz    ( dest -- ) 0swap0m !eqi ;
-: !neqz   ( dest -- ) 0swap0m !neqi ;
-: !ltz    ( dest -- ) 0swap0m !lti ; 
-: !gtz    ( dest -- ) 0swap0m !gti ;
-: !lez    ( dest -- ) 0swap0m !lei ;
-: !gez    ( dest -- ) 0swap0m !gei ;
+: !0= ( dest -- ) 0swap0m !eqi ;
+: !0<>   ( dest -- ) 0swap0m !neqi ;
+: !0<    ( dest -- ) 0swap0m !lti ; 
+: !0>    ( dest -- ) 0swap0m !gti ;
+: !0<=    ( dest -- ) 0swap0m !lei ;
+: !0>=    ( dest -- ) 0swap0m !gei ;
 
 
 
@@ -647,14 +647,14 @@ enum}
 : -> ( src dest -- ) !move32 ;
 : <- ( dest src -- ) swap ( val dest ) -> ;
 : <-val ( dest -- ) val <- ;
-: ->val ( src -- ) val ->;
+: ->val ( src -- ) val -> ;
 : <-addr ( dest -- ) addr <- ;
 : ->addr ( src -- ) addr -> ;
-: <-tmp ( dest -- ) tmp <- ;
-: ->tmp ( src -- ) tmp -> ;
+: <-temp ( dest -- ) temp <- ;
+: ->temp ( src -- ) temp -> ;
 : !val->addr ( -- ) val ->addr ;
 : !addr->val ( -- ) addr ->val ;
-: !tmp<->val ( -- ) tmp val !swap ;
+: !temp<->val ( -- ) temp val !swap ;
 : !sp<->csp ( -- ) sp csp !swap ;
 : tempdest ( a -- temp a ) temp swap ;
 : !push-immediate ( imm bitmask -- ) 
@@ -677,7 +677,7 @@ enum}
 : !pop-subroutine8  ( immediate -- ) 0m0001 !pop-subroutine ;
 
 : !push-subroutine ( dest bitmask -- ) !sp<->csp !push !sp<->csp ;
-: !push-immediate-subroutine ( immediate bitmask -- ) !sp<->csp !push-immediate !sp<->!csp ;
+: !push-immediate-subroutine ( immediate bitmask -- ) !sp<->csp !push-immediate !sp<->csp ;
 : !push-immediate-subroutine32 ( immediate -- ) 0m1111 !push-immediate-subroutine ;
 : !push-immediate-subroutine24 ( immediate -- ) 0m0111 !push-immediate-subroutine ;
 : !push-immediate-subroutine16 ( immediate -- ) 0m0011 !push-immediate-subroutine ;
@@ -716,9 +716,9 @@ enum}
   !load ;
 
 : !store-indirect ( offset mask -- ) 
-  !tmp<->val \ save val to tmp as it will get clobbered
+  !temp<->val \ save val to temp as it will get clobbered
   !over,load->addr 
-  !tmp<->val \ restore val or unclobber val
+  !temp<->val \ restore val or unclobber val
   !store \ perform the store as normal
   ;
 \ generic stack operations
@@ -745,7 +745,9 @@ enum}
   ;
 
 
+: func: ( label -- ) is-here ;
+: func; ( -- ) !ret ;
 
-
+: assemble ( in out -- ) swap open-input-file ;
 close-input-file
 
