@@ -540,6 +540,13 @@ enum}
 : !nandi16 ( immediate dest bitmask -- ) 0m0011 !nandi ;
 : !nandi8  ( immediate dest bitmask -- ) 0m0001 !nandi ;
 
+: !not ( src dest -- ) style-not !logical ;
+: !noti ( immediate dest bitmask -- ) style-not !logical-immediate ;
+: !noti32 ( immediate dest bitmask -- ) 0m1111 !noti ;
+: !noti24 ( immediate dest bitmask -- ) 0m0111 !noti ;
+: !noti16 ( immediate dest bitmask -- ) 0m0011 !noti ;
+: !noti8  ( immediate dest bitmask -- ) 0m0001 !noti ;
+
 
 close-input-file
 
