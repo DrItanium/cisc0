@@ -25,6 +25,7 @@ enum}
 : addr ( -- n ) r12 ;
 : val ( -- n ) r11 ;
 : temp ( -- n ) r10 ; 
+: temp2 ( -- n ) r9 ;
 
 {enum
 : op-memory ( -- n ) literal ; enum,
@@ -642,10 +643,17 @@ enum}
 : !reg<-c  ( dest -- ) style-move-from-condition !single-reg-compare ;
 : !reg->c ( dest -- ) style-move-to-condition !single-reg-compare ;
 
-: !true->c ( -- ) true temp tuck !mov8 !reg->c ;
-: !false->c ( -- ) false temp tuck !mov0 !reg->c ;
-: !value->addr ( -- ) value addr !move32 ;
-: !addr->value ( -- ) addr value !move32 ;
+: -> ( src dest -- ) !move32 ;
+: <- ( dest src -- ) swap ( val dest ) -> ;
+: <-val ( dest -- ) val <- ;
+: ->val ( src -- ) val ->;
+: <-addr ( dest -- ) addr <- ;
+: ->addr ( src -- ) addr -> ;
+: <-tmp ( dest -- ) tmp <- ;
+: ->tmp ( src -- ) tmp -> ;
+: !val->addr ( -- ) val ->addr ;
+: !addr->val ( -- ) addr ->val ;
+: !tmp<->val ( -- ) tmp val !swap ;
 : !sp<->csp ( -- ) sp csp !swap ;
 : tempdest ( a -- temp a ) temp swap ;
 : !push-immediate ( imm bitmask -- ) 
@@ -689,6 +697,52 @@ enum}
   over ( reg bitmask reg ) 
   swap ( reg reg bitmask )
   !pop ;
+
+: !store-immediate-value ( immediate bitmask -- ) 
+  dup -rot ( bitmask immediate bitmask )
+  val swap ( bitmask immediate val bitmask )
+  !set ( bitmask )
+  0swap ( 0 bitmask ) 
+  !store ;
+: !store-immediate-value32 ( immediate -- ) 0m1111 !store-immediate-value ;
+: !store-immediate-value24 ( immediate -- ) 0m0111 !store-immediate-value ;
+: !store-immediate-value16 ( immediate -- ) 0m0011 !store-immediate-value ;
+: !store-immediate-value8 ( immediate -- ) 0m0001 !store-immediate-value ;
+: !load->addr ( offset -- ) !load32 !val->addr ;
+: !over,load->addr ( offset mask offset -- mask offset ) over !load->addr ;
+: !load-indirect ( offset mask -- ) 
+  !over,load->addr ( offset mask )
+  !load ;
+
+: !store-indirect ( offset mask -- ) 
+  !tmp<->val \ save val to tmp as it will get clobbered
+  !over,load->addr 
+  !tmp<->val \ restore val or unclobber val
+  !store \ perform the store as normal
+  ;
+\ generic stack operations
+: !sp->addr ( -- ) sp ->addr ;
+: !pushr ( reg -- ) !push32 ;
+: !pushval ( -- ) val !pushr ;
+: !popr ( reg -- ) !pop32 ;
+: !peek ( -- ) !sp->addr 0 !load32 ;
+: !dup ( -- ) !peek !pushval ;
+: !over ( -- ) !sp->addr 2 !load32 !pushval ;
+: !!swap ( -- ) 
+  temp !popr \ top
+  val !popr \ lower
+  temp !pushr
+  val !pushr ;
+: !rot ( -- )
+  ( c b a -- b a c )
+  temp !popr  ( c b )
+  temp2 !popr  ( c )
+  val !popr  ( )
+  temp2 !pushr ( b )
+  temp !pushr  ( b a )
+  val !pushr  ( b a c )
+  ;
+
 
 
 
