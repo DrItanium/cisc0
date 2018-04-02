@@ -31,7 +31,7 @@ func;
     ( a -- )
     !dup \ make a copy of the address
     GetStringLength !cuv
-    !!swap 
+    !swap 
     ComputeStringStart !cuv
     addr !popr \ then load the string start into addr
     strlen !popr \ load the string length into temp

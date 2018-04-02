@@ -206,12 +206,12 @@ variable current-address
 : !move32 ( src dest -- ) 0m1111 !move ;
 : !move0 ( src dest -- ) 0m0000 !move ;
 
-: !swap ( src dest -- ) 
+: !<-> ( src dest -- ) 
   op-swap ->inst
   ->dest,src
   ->done ; 
 
-: !nop ( -- ) r0 r0 !swap ;
+: !nop ( -- ) r0 r0 !<-> ;
 
 {enum 
 : style-return ( -- n ) literal ; enum,
@@ -658,8 +658,8 @@ enum}
 : ->temp ( src -- ) temp -> ;
 : !val->addr ( -- ) val ->addr ;
 : !addr->val ( -- ) addr ->val ;
-: !temp<->val ( -- ) temp val !swap ;
-: !sp<->csp ( -- ) sp csp !swap ;
+: !temp<->val ( -- ) temp val !<-> ;
+: !sp<->csp ( -- ) sp csp !<-> ;
 : tempdest ( a -- temp a ) temp swap ;
 : !push-immediate ( imm bitmask -- ) 
   dup ( imm bitmask bitmask )
@@ -681,6 +681,10 @@ enum}
 : !pop-subroutine8  ( immediate -- ) 0m0001 !pop-subroutine ;
 
 : !push-subroutine ( dest bitmask -- ) !sp<->csp !push !sp<->csp ;
+: !push-subroutine32 ( immediate -- ) 0m1111 !push-subroutine ;
+: !push-subroutine24 ( immediate -- ) 0m0111 !push-subroutine ;
+: !push-subroutine16 ( immediate -- ) 0m0011 !push-subroutine ;
+: !push-subroutine8  ( immediate -- ) 0m0001 !push-subroutine ;
 : !push-immediate-subroutine ( immediate bitmask -- ) !sp<->csp !push-immediate !sp<->csp ;
 : !push-immediate-subroutine32 ( immediate -- ) 0m1111 !push-immediate-subroutine ;
 : !push-immediate-subroutine24 ( immediate -- ) 0m0111 !push-immediate-subroutine ;
@@ -733,7 +737,7 @@ enum}
 : !peek ( -- ) !sp->addr 0 !load32 ;
 : !dup ( -- ) !peek !pushval ;
 : !over ( -- ) !sp->addr 2 !load32 !pushval ;
-: !!swap ( -- ) 
+: !swap ( -- ) 
   temp !popr \ top
   val !popr \ lower
   temp !pushr
@@ -753,5 +757,23 @@ enum}
 : func; ( -- ) !ret ;
 
 : assemble ( in out -- ) swap open-input-file ;
+
+: !sp<->vmsp ( -- ) sp vmsp !<-> ;
+: !pop-vmstack ( dest bitmask -- ) !sp<->vmsp !pop !sp<->vmsp ;
+: !pop-vmstack32 ( immediate -- ) 0m1111 !pop-vmstack ;
+: !pop-vmstack24 ( immediate -- ) 0m0111 !pop-vmstack ;
+: !pop-vmstack16 ( immediate -- ) 0m0011 !pop-vmstack ;
+: !pop-vmstack8  ( immediate -- ) 0m0001 !pop-vmstack ;
+
+: !push-vmstack ( dest bitmask -- ) !sp<->vmsp !push !sp<->vmsp ;
+: !push-vmstack32 ( immediate -- ) 0m1111 !push-vmstack ;
+: !push-vmstack24 ( immediate -- ) 0m0111 !push-vmstack ;
+: !push-vmstack16 ( immediate -- ) 0m0011 !push-vmstack ;
+: !push-vmstack8  ( immediate -- ) 0m0001 !push-vmstack ;
+: !push-immediate-vmstack ( immediate bitmask -- ) !sp<->vmsp !push-immediate !sp<->vmsp ;
+: !push-immediate-vmstack32 ( immediate -- ) 0m1111 !push-immediate-vmstack ;
+: !push-immediate-vmstack24 ( immediate -- ) 0m0111 !push-immediate-vmstack ;
+: !push-immediate-vmstack16 ( immediate -- ) 0m0011 !push-immediate-vmstack ;
+: !push-immediate-vmstack8  ( immediate -- ) 0m0001 !push-immediate-vmstack ;
 close-input-file
 
