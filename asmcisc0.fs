@@ -74,13 +74,6 @@ enum}
 enum}
 
 
-{enum
-: style-and ( -- n ) literal ; enum,
-: style-or ( -- n ) literal ; enum,
-: style-xor ( -- n ) literal ; enum,
-: style-nand ( -- n ) literal ; enum,
-: style-not ( -- n ) literal ; 
-enum}
 
 
 {enum 
@@ -493,6 +486,59 @@ enum}
   !three-operand-form 
   !min ;
 
+{enum
+: style-and ( -- n ) literal ; enum,
+: style-or ( -- n ) literal ; enum,
+: style-xor ( -- n ) literal ; enum,
+: style-nand ( -- n ) literal ; enum,
+: style-not ( -- n ) literal ; 
+enum}
+
+: ->logical ( body imm? -- ) 
+  op-logical ->inst ( body imm? op )
+  word, ( body op )
+  word, ( op )
+  ->done ;
+
+: !logical ( src dest style -- )
+  0 ->style3
+  ->dest,src ( body )
+  indirect-form ->logical ;
+
+: !logical-immediate ( immediate dest bitmask style -- )
+  0 ->style3
+  ->bitmask
+  ->destination
+  immediate-form ->logical \ first word
+  emit-immediate ;
+
+: !and ( src dest -- ) style-and !logical ;
+: !andi ( immediate dest bitmask -- ) style-and !logical-immediate ;
+: !andi32 ( immediate dest bitmask -- ) 0m1111 !andi ;
+: !andi24 ( immediate dest bitmask -- ) 0m0111 !andi ;
+: !andi16 ( immediate dest bitmask -- ) 0m0011 !andi ;
+: !andi8  ( immediate dest bitmask -- ) 0m0001 !andi ;
+
+: !or ( src dest -- ) style-or !logical ;
+: !ori ( immediate dest bitmask -- ) style-or !logical-immediate ;
+: !ori32 ( immediate dest bitmask -- ) 0m1111 !ori ;
+: !ori24 ( immediate dest bitmask -- ) 0m0111 !ori ;
+: !ori16 ( immediate dest bitmask -- ) 0m0011 !ori ;
+: !ori8  ( immediate dest bitmask -- ) 0m0001 !ori ;
+
+: !xor ( src dest -- ) style-xor !logical ;
+: !xori ( immediate dest bitmask -- ) style-xor !logical-immediate ;
+: !xori32 ( immediate dest bitmask -- ) 0m1111 !xori ;
+: !xori24 ( immediate dest bitmask -- ) 0m0111 !xori ;
+: !xori16 ( immediate dest bitmask -- ) 0m0011 !xori ;
+: !xori8  ( immediate dest bitmask -- ) 0m0001 !xori ;
+
+: !nand ( src dest -- ) style-nand !logical ;
+: !nandi ( immediate dest bitmask -- ) style-nand !logical-immediate ;
+: !nandi32 ( immediate dest bitmask -- ) 0m1111 !nandi ;
+: !nandi24 ( immediate dest bitmask -- ) 0m0111 !nandi ;
+: !nandi16 ( immediate dest bitmask -- ) 0m0011 !nandi ;
+: !nandi8  ( immediate dest bitmask -- ) 0m0001 !nandi ;
 
 
 close-input-file
