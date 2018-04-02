@@ -27,6 +27,10 @@ enum}
 : val ( -- n ) r11 ;
 : temp ( -- n ) r10 ; 
 : temp2 ( -- n ) r9 ;
+: vmsp ( -- n ) r8 ;
+: loc0 ( -- n ) r7 ;
+: loc1 ( -- n ) r6 ; 
+
 
 {enum
 : op-memory ( -- n ) literal ; enum,
