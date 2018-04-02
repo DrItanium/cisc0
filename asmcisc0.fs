@@ -1,5 +1,6 @@
 " misc/forth_interpreter/basics.fs" open-input-file
-
+: {asm ( a -- ) {bin ;
+: asm} ( -- ) bin} ;
 {enum
 : r0 ( -- n ) literal ; enum,
 : r1 ( -- n ) literal ; enum,
@@ -554,8 +555,8 @@ enum}
   temp tuck !set8 
   !putc ;
 
-: !cr ( -- ) 0xA !putci ;
-: !space ( -- ) 0x20 !putci ;
+: !put-cr ( -- ) 0xA !putci ;
+: !put-space ( -- ) 0x20 !putci ;
 
 {enum
 : style-equals ( -- n ) literal ; enum,
