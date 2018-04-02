@@ -1,6 +1,8 @@
 \ basic string routines
 \ always pass on the stack
 : strlen ( -- n ) temp ;
+: l0 ( -- n ) r0 ;
+: l1 ( -- n ) r1 ;
 variable LeaveFunctionEarly
 variable PrintString
 : !newline? ( reg -- ) 0xA swap !eqi8 ;
@@ -49,6 +51,12 @@ func;
     PrintString !cuv
     !put-cr 
     func;
+.label ReadChar func:
+    val !getc
+    val !push32
+    func;
+.label ReadLine func:
+    
 
 asm}
 close-input-file
