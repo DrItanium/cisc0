@@ -62,16 +62,6 @@ enum}
 : lower-half? ( value -- f ) 0m0011 bitwise-andu 0<> ; 
 
 
-{enum
-: style-equals ( -- n ) literal ; enum,
-: style-not-equals ( -- n ) literal ; enum,
-: style-less-than ( -- n ) literal ; enum,
-: style-greater-than ( -- n ) literal ; enum,
-: style-less-than-or-equal-to ( -- n ) literal ; enum,
-: style-greater-than-or-equal-to ( -- n ) literal ; enum,
-: style-move-from-condition ( -- n ) literal ; enum,
-: style-move-to-condition ( -- n ) literal ;
-enum}
 
 
 
@@ -559,6 +549,103 @@ enum}
 : !noti16 ( immediate dest bitmask -- ) 0m0011 !noti ;
 : !noti8  ( immediate dest bitmask -- ) 0m0001 !noti ;
 
+: !putci ( immediate -- ) 
+  temp tuck !set8 
+  !putc ;
+
+: !cr ( -- ) 0xA !putci ;
+: !space ( -- ) 0x20 !putci ;
+
+{enum
+: style-equals ( -- n ) literal ; enum,
+: style-not-equals ( -- n ) literal ; enum,
+: style-less-than ( -- n ) literal ; enum,
+: style-greater-than ( -- n ) literal ; enum,
+: style-less-than-or-equal-to ( -- n ) literal ; enum,
+: style-greater-than-or-equal-to ( -- n ) literal ; enum,
+: style-move-from-condition ( -- n ) literal ; enum,
+: style-move-to-condition ( -- n ) literal ;
+enum}
+
+: ->compare ( body imm? -- )
+  op-compare ->inst ( body imm? op )
+  word, ( body op )
+  word, 
+  ->done ;
+: !single-reg-compare ( dest style -- )
+  0 ->style3 
+  ->destination
+  indirect-form ->compare ;
+: !compare ( src dest style -- )
+  0 ->style3 
+  ->dest,src 
+  indirect-form ->compare ;
+: !compare-immediate ( immediate dest bitmask style -- )
+  0 ->style3
+  ->bitmask
+  ->destination
+  immediate-form ->compare 
+  emit-immediate ;
+: !eq ( src dest -- ) style-equals !compare ;
+: !eqi ( immediate dest bitmask -- ) style-equals !compare-immediate ;
+: !eqi32 ( immediate dest -- ) 0m1111 !eqi ;
+: !eqi24 ( immediate dest -- ) 0m0111 !eqi ;
+: !eqi16 ( immediate dest -- ) 0m0011 !eqi ;
+: !eqi8  ( immediate dest -- ) 0m0001 !eqi ;
+
+: !neq ( src dest -- ) style-not-equals !compare ;
+: !neqi ( immediate dest bitmask -- ) style-not-equals !compare-immediate ;
+: !neqi32 ( immediate dest -- ) 0m1111 !neqi ;
+: !neqi24 ( immediate dest -- ) 0m0111 !neqi ;
+: !neqi16 ( immediate dest -- ) 0m0011 !neqi ;
+: !neqi8  ( immediate dest -- ) 0m0001 !neqi ;
+
+: !lt ( src dest -- ) style-less-than !compare ;
+: !lti ( immediate dest bitmask -- ) style-less-than !compare-immediate ;
+: !lti32 ( immediate dest -- ) 0m1111 !lti ;
+: !lti24 ( immediate dest -- ) 0m0111 !lti ;
+: !lti16 ( immediate dest -- ) 0m0011 !lti ;
+: !lti8  ( immediate dest -- ) 0m0001 !lti ;
+
+: !gt ( src dest -- ) style-greater-than !compare ;
+: !gti ( immediate dest bitmask -- ) style-greater-than !compare-immediate ;
+: !gti32 ( immediate dest -- ) 0m1111 !gti ;
+: !gti24 ( immediate dest -- ) 0m0111 !gti ;
+: !gti16 ( immediate dest -- ) 0m0011 !gti ;
+: !gti8  ( immediate dest -- ) 0m0001 !gti ;
+
+: !le ( src dest -- ) style-less-than-or-equal-to !compare ;
+: !lei ( immediate dest bitmask -- ) style-less-than-or-equal-to !compare-immediate ;
+: !lei32 ( immediate dest -- ) 0m1111 !lei ;
+: !lei24 ( immediate dest -- ) 0m0111 !lei ;
+: !lei16 ( immediate dest -- ) 0m0011 !lei ;
+: !lei8  ( immediate dest -- ) 0m0001 !lei ;
+
+: !ge ( src dest -- ) style-greater-than-or-equal-to !compare ;
+: !gei ( immediate dest bitmask -- ) style-greater-than-or-equal-to !compare-immediate ;
+: !gei32 ( immediate dest -- ) 0m1111 !gei ;
+: !gei24 ( immediate dest -- ) 0m0111 !gei ;
+: !gei16 ( immediate dest -- ) 0m0011 !gei ;
+: !gei8  ( immediate dest -- ) 0m0001 !gei ;
+
+: 0swap ( a -- 0 a ) 0 swap ;
+: 0swap0m ( a -- 0 a 0m0000 ) 0swap 0m0000 ;
+: !eqz    ( dest -- ) 0swap0m !eqi ;
+: !neqz   ( dest -- ) 0swap0m !neqi ;
+: !ltz    ( dest -- ) 0swap0m !lti ; 
+: !gtz    ( dest -- ) 0swap0m !gti ;
+: !lez    ( dest -- ) 0swap0m !lei ;
+: !gez    ( dest -- ) 0swap0m !gei ;
+
+
+
+  
+
+: !reg<-c  ( dest -- ) style-move-from-condition !single-reg-compare ;
+: !reg->c ( dest -- ) style-move-to-condition !single-reg-compare ;
+
+: !true->c ( -- ) true temp tuck !mov8 !reg->c ;
+: !false->c ( -- ) false temp tuck !mov0 !reg->c ;
 
 close-input-file
 
