@@ -336,25 +336,58 @@ variable current-address
   .word32 \ we are basically putting a .word32 after the fact
   ;
 
-\ flag order does not matter but provide macros
-: !branch-unconditional-indirect ( dest -- ) unconditional nolink !branch-indirect ;
-: !branch-unconditional ( imm -- ) unconditional nolink !branch ;
-: !branch-conditional-indirect ( dest -- ) conditional nolink !branch-indirect ;
-: !branch-conditional ( imm -- ) conditional nolink !branch ;
-: !call-unconditional-indirect ( dest -- ) unconditional link !branch-indirect ;
-: !call-unconditional ( imm -- ) unconditional link !branch ;
-: !call-conditional-indirect ( dest -- ) conditional link !branch-indirect ;
-: !call-conditional ( imm -- ) conditional link !branch ;
+: !call ( address cond? -- ) link !branch ;
+: !jump ( address cond? -- ) nolink !branch ;
+: !call-indirect ( dest cond? -- ) link !branch-indirect ;
+: !jump-indirect ( dest cond? -- ) nolink !branch-indirect ;
 
-: !bui ( dest -- ) !branch-unconditional-indirect ;
-: !bu ( imm -- ) !branch-unconditional ;
-: !bci ( dest -- ) !branch-conditional-indirect ;
-: !bc ( imm -- ) !branch-conditional ;
+\ flag order does not matter but provide macros
+: !jump-unconditional-indirect ( dest -- ) unconditional !jump-indirect ;
+: !jump-conditional-indirect ( dest -- ) conditional !jump-indirect;
+: !jump-unconditional ( imm -- ) unconditional !jump ;
+: !jump-conditional ( imm -- ) conditional !jump ;
+: !call-unconditional-indirect ( dest -- ) unconditional !call-indirect ;
+: !call-unconditional ( imm -- ) unconditional !call ;
+: !call-conditional-indirect ( dest -- ) conditional !call-indirect ;
+: !call-conditional ( imm -- ) conditional !call ;
+
+: !jui ( dest -- ) !jump-unconditional-indirect ;
+: !ju ( imm -- ) !jump-unconditional ;
+: !jci ( dest -- ) !jump-conditional-indirect ;
+: !jc ( imm -- ) !jump-conditional ;
 : !cui ( dest -- ) !call-unconditional-indirect ;
 : !cu ( imm -- ) !call-unconditional ;
 : !cci ( dest -- ) !call-conditional-indirect ;
 : !cc ( imm -- ) !call-conditional ;
 
+: ->set ( dest mask -- ) 
+  op-set ->inst 
+  ->bitmask
+  ->destination 
+  ->done ;
+: get-upper-half ( value -- upper ) 16 >>u mask-imm16 ;
+: get-lower-half ( value -- lower ) mask-imm16 ;
+: split-into-halves ( value -- upper lower ) 
+  dup ( value value )
+  get-upper-half ( value upper )
+  swap ( upper value )
+  get-lower-half ( upper lower )
+  ;
+: emit-data16-on-true ( value cond -- ) if .data16 else drop then ;
+: emit-immediate ( immediate -- ) 
+  split-into-halves
+  current-bitmask @ lower-half? emit-data16-on-true 
+  current-bitmask @ upper-half? emit-data16-on-true ;
+
+: !set ( imm dest mask -- )
+  ->set \ setup the initial word 
+  emit-immediate ;
+: !set32 ( imm dest -- ) 0m1111 !set ;
+: !set16 ( imm dest -- ) 0m0011 !set ;
+: !set16u ( imm dest -- ) 0m1100 !set ;
+: !set8 ( imm dest -- ) 0m0001 !set ;
+: !set0 ( dest -- ) 0 swap 0m0000 !set ;
+  
 
 \ set is a little strange since we have to be able to decompose the instruction
 \ into multiple 16-bit words based on the bitmask
