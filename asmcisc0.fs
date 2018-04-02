@@ -73,15 +73,6 @@ enum}
 : style-move-to-condition ( -- n ) literal ;
 enum}
 
-{enum
-: style-add ( -- n ) literal ; enum,
-: style-sub ( -- n ) literal ; enum,
-: style-mul ( -- n ) literal ; enum,
-: style-div ( -- n ) literal ; enum,
-: style-rem ( -- n ) literal ; enum,
-: style-min ( -- n ) literal ; enum,
-: style-max ( -- n ) literal ; 
-enum}
 
 {enum
 : style-and ( -- n ) literal ; enum,
@@ -91,12 +82,6 @@ enum}
 : style-not ( -- n ) literal ; 
 enum}
 
-{enum
-: style-load ( -- n ) literal ; enum,
-: style-store ( -- n ) literal ; enum,
-: style-push ( -- n ) literal ; enum,
-: style-pop ( -- n ) literal ; 
-enum}
 
 {enum 
 : style-return ( -- n ) literal ; enum,
@@ -247,6 +232,13 @@ variable current-address
 : !ret ( -- ) style-return !misc ;
 : !terminate ( -- ) style-terminate !misc ;
 
+{enum
+: style-load ( -- n ) literal ; enum,
+: style-store ( -- n ) literal ; enum,
+: style-push ( -- n ) literal ; enum,
+: style-pop ( -- n ) literal ; 
+enum}
+
 : !memory ( dest/offset bitmask kind2 -- ) 
   op-memory ->inst
   ->style2 
@@ -387,7 +379,85 @@ variable current-address
 : !set16u ( imm dest -- ) 0m1100 !set ;
 : !set8 ( imm dest -- ) 0m0001 !set ;
 : !set0 ( dest -- ) 0 swap 0m0000 !set ;
-  
+
+{enum
+: style-add ( -- n ) literal ; enum,
+: style-sub ( -- n ) literal ; enum,
+: style-mul ( -- n ) literal ; enum,
+: style-div ( -- n ) literal ; enum,
+: style-rem ( -- n ) literal ; enum,
+: style-min ( -- n ) literal ; enum,
+: style-max ( -- n ) literal ; 
+enum}
+
+: ->arithmetic ( body imm? -- )
+  op-arithmetic ->inst ( body imm? op )
+  word, ( body op ) 
+  word, ( op )
+  ->done ;
+
+: !arithmetic ( src dest style -- )
+  0 ->style3 ( src dest body )
+  ->dest,src ( body )
+  indirect-form ->arithmetic ;
+
+: !arithmetic-immediate ( immediate dest bitmask style -- )
+  0 ->style3 ( immediate dest bitmask body )
+  ->bitmask ( immediate dest body )
+  ->destination ( immediate body )
+  immediate-form ->arithmetic \ output the first word
+  emit-immediate \ then try and see if there are other words to output following it
+  ;
+: !add ( src dest -- ) style-add !arithmetic ;
+: !addi ( immediate dest bitmask -- ) style-add !arithmetic-immediate ;
+: !addi32 ( immediate dest -- ) 0m1111 !addi ;
+: !addi24 ( immediate dest -- ) 0m0111 !addi ;
+: !addi16 ( immediate dest -- ) 0m0011 !addi ;
+: !addi8  ( immediate dest -- ) 0m0001 !addi ;
+
+: !sub ( src dest -- ) style-sub !arithmetic ;
+: !subi ( immediate dest bitmask -- ) style-sub !arithmetic-immediate ;
+: !subi32 ( immediate dest -- ) 0m1111 !subi ;
+: !subi24 ( immediate dest -- ) 0m0111 !subi ;
+: !subi16 ( immediate dest -- ) 0m0011 !subi ;
+: !subi8  ( immediate dest -- ) 0m0001 !subi ;
+
+: !mul ( src dest -- ) style-mul !arithmetic ;
+: !muli ( immediate dest bitmask -- ) style-mul !arithmetic-immediate ;
+: !muli32 ( immediate dest -- ) 0m1111 !muli ;
+: !muli24 ( immediate dest -- ) 0m0111 !muli ;
+: !muli16 ( immediate dest -- ) 0m0011 !muli ;
+: !muli8  ( immediate dest -- ) 0m0001 !muli ;
+: !div ( src dest -- ) style-div !arithmetic ;
+: !divi ( immediate dest bitmask -- ) style-div !arithmetic-immediate ;
+: !divi32 ( immediate dest -- ) 0m1111 !divi ;
+: !divi24 ( immediate dest -- ) 0m0111 !divi ;
+: !divi16 ( immediate dest -- ) 0m0011 !divi ;
+: !divi8  ( immediate dest -- ) 0m0001 !divi ;
+: !rem ( src dest -- ) style-rem !arithmetic ;
+: !remi ( immediate dest bitmask -- ) style-rem !arithmetic-immediate ;
+: !remi32 ( immediate dest -- ) 0m1111 !remi ;
+: !remi24 ( immediate dest -- ) 0m0111 !remi ;
+: !remi16 ( immediate dest -- ) 0m0011 !remi ;
+: !remi8  ( immediate dest -- ) 0m0001 !remi ;
+
+: !min ( src dest -- ) style-min !arithmetic ;
+: !mini ( immediate dest bitmask -- ) style-min !arithmetic-immediate ;
+: !mini32 ( immediate dest -- ) 0m1111 !mini ;
+: !mini24 ( immediate dest -- ) 0m0111 !mini ;
+: !mini16 ( immediate dest -- ) 0m0011 !mini ;
+: !mini8  ( immediate dest -- ) 0m0001 !mini ;
+
+: !max ( src dest -- ) style-max !arithmetic ;
+: !maxi ( immediate dest bitmask -- ) style-max !arithmetic-immediate ;
+: !maxi32 ( immediate dest -- ) 0m1111 !maxi ;
+: !maxi24 ( immediate dest -- ) 0m0111 !maxi ;
+: !maxi16 ( immediate dest -- ) 0m0011 !maxi ;
+: !maxi8  ( immediate dest -- ) 0m0001 !maxi ;
+
+: !incr   ( dest -- ) 1 swap !addi8 ;
+: !decr   ( dest -- ) 1 swap !subi8 ;
+
 
 \ set is a little strange since we have to be able to decompose the instruction
 \ into multiple 16-bit words based on the bitmask
