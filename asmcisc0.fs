@@ -759,21 +759,7 @@ enum}
 : assemble ( in out -- ) swap open-input-file ;
 
 : !sp<->vmsp ( -- ) sp vmsp !<-> ;
-: !pop-vmstack ( dest bitmask -- ) !sp<->vmsp !pop !sp<->vmsp ;
-: !pop-vmstack32 ( immediate -- ) 0m1111 !pop-vmstack ;
-: !pop-vmstack24 ( immediate -- ) 0m0111 !pop-vmstack ;
-: !pop-vmstack16 ( immediate -- ) 0m0011 !pop-vmstack ;
-: !pop-vmstack8  ( immediate -- ) 0m0001 !pop-vmstack ;
-
-: !push-vmstack ( dest bitmask -- ) !sp<->vmsp !push !sp<->vmsp ;
-: !push-vmstack32 ( immediate -- ) 0m1111 !push-vmstack ;
-: !push-vmstack24 ( immediate -- ) 0m0111 !push-vmstack ;
-: !push-vmstack16 ( immediate -- ) 0m0011 !push-vmstack ;
-: !push-vmstack8  ( immediate -- ) 0m0001 !push-vmstack ;
-: !push-immediate-vmstack ( immediate bitmask -- ) !sp<->vmsp !push-immediate !sp<->vmsp ;
-: !push-immediate-vmstack32 ( immediate -- ) 0m1111 !push-immediate-vmstack ;
-: !push-immediate-vmstack24 ( immediate -- ) 0m0111 !push-immediate-vmstack ;
-: !push-immediate-vmstack16 ( immediate -- ) 0m0011 !push-immediate-vmstack ;
-: !push-immediate-vmstack8  ( immediate -- ) 0m0001 !push-immediate-vmstack ;
+: {vmstack ( -- ) !sp<->vmsp ;
+: vmstack} ( -- ) !sp<->vmsp ;
 close-input-file
 
