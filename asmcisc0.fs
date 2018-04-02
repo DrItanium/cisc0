@@ -639,13 +639,58 @@ enum}
 
 
 
-  
-
 : !reg<-c  ( dest -- ) style-move-from-condition !single-reg-compare ;
 : !reg->c ( dest -- ) style-move-to-condition !single-reg-compare ;
 
 : !true->c ( -- ) true temp tuck !mov8 !reg->c ;
 : !false->c ( -- ) false temp tuck !mov0 !reg->c ;
+: !value->addr ( -- ) value addr !move32 ;
+: !addr->value ( -- ) addr value !move32 ;
+: !sp<->csp ( -- ) sp csp !swap ;
+: tempdest ( a -- temp a ) temp swap ;
+: !push-immediate ( imm bitmask -- ) 
+  dup ( imm bitmask bitmask )
+  -rot ( bitmask imm bitmask )
+  tempdest ( bitmask imm temp bitmask )
+  !set ( bitmask )
+  tempdest ( temp bitmask ) 
+  !push ;
+
+: !push-immediate32 ( imm -- ) 0m1111 !push-immediate ;
+: !push-immediate24 ( imm -- ) 0m0111 !push-immediate ;
+: !push-immediate16 ( imm -- ) 0m0011 !push-immediate ;
+: !push-immediate8  ( imm -- ) 0m0001 !push-immediate ;
+
+: !pop-subroutine ( dest bitmask -- ) !sp<->csp !pop !sp<->csp ;
+: !pop-subroutine32 ( immediate -- ) 0m1111 !pop-subroutine ;
+: !pop-subroutine24 ( immediate -- ) 0m0111 !pop-subroutine ;
+: !pop-subroutine16 ( immediate -- ) 0m0011 !pop-subroutine ;
+: !pop-subroutine8  ( immediate -- ) 0m0001 !pop-subroutine ;
+
+: !push-subroutine ( dest bitmask -- ) !sp<->csp !push !sp<->csp ;
+: !push-immediate-subroutine ( immediate bitmask -- ) !sp<->csp !push-immediate !sp<->!csp ;
+: !push-immediate-subroutine32 ( immediate -- ) 0m1111 !push-immediate-subroutine ;
+: !push-immediate-subroutine24 ( immediate -- ) 0m0111 !push-immediate-subroutine ;
+: !push-immediate-subroutine16 ( immediate -- ) 0m0011 !push-immediate-subroutine ;
+: !push-immediate-subroutine8  ( immediate -- ) 0m0001 !push-immediate-subroutine ;
+
+: !param->subroutine ( reg bitmask -- ) 
+  \ move a value from the top of the parameter stack to the top of the subroutine stack
+  2dup ( reg bitmask reg bitmask )
+  !pop 
+  !push-subroutine ;
+
+: !param<-subroutine ( reg bitmask -- )
+  2dup ( reg bitmask reg bitmask )
+  !pop-subroutine
+  !push ;
+
+: !tos ( reg bitmask -- reg ) \ load the top of the stack and use that in the next computation
+  over ( reg bitmask reg ) 
+  swap ( reg reg bitmask )
+  !pop ;
+
+
 
 close-input-file
 
