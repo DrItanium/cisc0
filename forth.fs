@@ -29,12 +29,7 @@ variable VariableEnd
   VMVariablesEnd @ swap ! ;
 : advance-var-end ( count -- )
   VMVariablesEnd @ + VMVariablesEnd ! ;
-: defvar16 ( variable -- ) 
-  store-current-end 
-  1 advance-var-end ;
-: defvar32 ( variable -- ) 
-  store-current-end 
-  2 advance-var-end ;
+: defvar ( variable -- ) store-current-end 2 advance-var-end ;
 \ 0xFE0000 - 0xFEFFFF vmstack
 \ 0xFD0000 - 0xFDFFFF parameter stack
 \ 0xFC0000 - 0xFCFFFF subroutine stack
@@ -67,8 +62,7 @@ CodeCacheEnd @ 0x3FFFFF - CodeCacheStart !
 CodeCacheStart @ 1- VariableEnd !
 VariableEnd @ 0x0FFFFF - VariableStart !
 \ variables to define
-: setvar16 ( value variable -- ) .orgv .data16 ;
-: setvar32 ( value variable -- ) .orgv .data32 ;
+: setvar ( value variable -- ) .orgv .data32 ;
 variable StringInputMax
 254 StringInputMax !
 variable &IgnoreInput
@@ -94,29 +88,29 @@ variable &VariableEnd
 variable &CurrentStringCacheStart
 variable &CurrentCodeCacheStart
 variable &CurrentVariableCacheStart
-&Capacity defvar32
-&IgnoreInput defvar16
-&IsCompiling defvar16
-&StringInputMax defvar16
-&InputBufferStart defvar32
-&DictionaryFront defvar32
-&ParameterStackEmpty defvar32
-&ParameterStackFull defvar32
-&SubroutineStackEmpty defvar32
-&SubroutineStackFull defvar32
-&VMStackEmpty defvar32
-&VMStackFull defvar32
-&StringCacheStart defvar32
-&StringCacheEnd defvar32
-&CodeCacheStart defvar32
-&CodeCacheEnd defvar32
-&DictionaryStart defvar32
-&DictionaryEnd defvar32
-&VariableStart defvar32
-&VariableEnd defvar32
-&CurrentStringCacheStart defvar32
-&CurrentCodeCacheStart defvar32
-&CurrentVariableCacheStart defvar32
+&Capacity defvar
+&IgnoreInput defvar
+&IsCompiling defvar
+&StringInputMax defvar
+&InputBufferStart defvar
+&DictionaryFront defvar
+&ParameterStackEmpty defvar
+&ParameterStackFull defvar
+&SubroutineStackEmpty defvar
+&SubroutineStackFull defvar
+&VMStackEmpty defvar
+&VMStackFull defvar
+&StringCacheStart defvar
+&StringCacheEnd defvar
+&CodeCacheStart defvar
+&CodeCacheEnd defvar
+&DictionaryStart defvar
+&DictionaryEnd defvar
+&VariableStart defvar
+&VariableEnd defvar
+&CurrentStringCacheStart defvar
+&CurrentCodeCacheStart defvar
+&CurrentVariableCacheStart defvar
 
 
 variable LeaveFunctionEarly
@@ -132,25 +126,25 @@ variable DoneWithLocals
 : !need-locals ( -- ) NeedLocals !cuv ;
 : !restore-locals ( -- ) DoneWithLocals !cuv ;
 {asm
-false &IgnoreInput setvar16
-false &IsCompiling setvar16
-Capacity @ &Capacity setvar32
-StringInputMax @ &StringInputMax setvar16
-InputBufferStart @ &InputBufferStart setvar32
-VMStackEnd @ &VMStackEmpty setvar32
-VMStackBegin @ &VMStackFull setvar32
-ParameterStackEnd @ &ParameterStackEmpty setvar32
-ParameterStackBegin @ &ParameterStackFull setvar32
-SubroutineStackEnd @ &SubroutineStackEmpty setvar32
-SubroutineStackBegin @ &SubroutineStackFull setvar32
-StringCacheStart @ &StringCacheStart setvar32
-StringCacheEnd @ &StringCacheEnd setvar32
-CodeCacheStart @ &CodeCacheStart setvar32
-CodeCacheEnd @ &CodeCacheEnd setvar32
-DictionaryStart @ &DictionaryStart setvar32
-DictionaryEnd @ &DictionaryEnd setvar32
-VariableStart @ &VariableStart setvar32
-VariableEnd @ &VariableEnd setvar32
+false &IgnoreInput setvar
+false &IsCompiling setvar
+Capacity @ &Capacity setvar
+StringInputMax @ &StringInputMax setvar
+InputBufferStart @ &InputBufferStart setvar
+VMStackEnd @ &VMStackEmpty setvar
+VMStackBegin @ &VMStackFull setvar
+ParameterStackEnd @ &ParameterStackEmpty setvar
+ParameterStackBegin @ &ParameterStackFull setvar
+SubroutineStackEnd @ &SubroutineStackEmpty setvar
+SubroutineStackBegin @ &SubroutineStackFull setvar
+StringCacheStart @ &StringCacheStart setvar
+StringCacheEnd @ &StringCacheEnd setvar
+CodeCacheStart @ &CodeCacheStart setvar
+CodeCacheEnd @ &CodeCacheEnd setvar
+DictionaryStart @ &DictionaryStart setvar
+DictionaryEnd @ &DictionaryEnd setvar
+VariableStart @ &VariableStart setvar
+VariableEnd @ &VariableEnd setvar
 Capacity @ .capacity
 
 0 .org
@@ -223,6 +217,27 @@ func;
     InputBufferStart @ temp2 !set32
     temp temp2 !read-word
     func;
+.label StoreToMemory func:
+    ( value address -- )
+    addr !popr
+    val !popr
+    0 !store32
+    func;
+: save-register-to-address ( reg addr -- )
+  addr !set32 
+  dup val <> if ->val else drop then \ don't emit an instruction if register is val already
+  0 !store32 ;
+: save-register-to-variable ( reg var -- ) @ save-register-to-address ;
+
+.label SynchronizeRegisterWithVariables func:
+    strp &CurrentStringCacheStart save-register-to-variable 
+    vp &CurrentVariableCacheStart save-register-to-variable 
+    codp &CurrentCodeCacheStart save-register-to-variable
+    dp &DictionaryFront save-register-to-variable 
+    func;
+
+
+
   
 : .char ( code -- ) 1 .data32 .data16 ;
 variable CurrentDictionaryFront
@@ -273,9 +288,10 @@ SubroutineStackEnd @ subrp  .register
 CurrentCodeCacheStart @ codp .register
 CurrentVariableCacheStart @ vp .register
 CurrentStringCacheStart @ strp .register
-CurrentCodeCacheStart @ &CurrentCodeCacheStart setvar32
-CurrentStringCacheStart @ &CurrentStringCacheStart setvar32
-CurrentDictionaryFront @ &DictionaryFront setvar32
-CurrentVariableCacheStart @ &CurrentVariableCacheStart setvar32
+CurrentDictionaryFront @ dp .register
+CurrentCodeCacheStart @ &CurrentCodeCacheStart setvar
+CurrentStringCacheStart @ &CurrentStringCacheStart setvar
+CurrentDictionaryFront @ &DictionaryFront setvar
+CurrentVariableCacheStart @ &CurrentVariableCacheStart setvar
 asm}
 close-input-file
