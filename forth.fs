@@ -280,7 +280,23 @@ variable CurrentCodeCacheStart
 CodeCacheStart @ CurrentCodeCacheStart !
 VariableStart .orgv
 variable CurrentVariableCacheStart
-VariableStart @ CurrentVariableCacheStart !
+variable OldVariableCacheStart
+variable NextVariableCacheStart
+0 CurrentVariableCacheStart !
+0 OldVariableCacheStart !
+VariableStart @ NextVariableCacheStart !
+
+: .variable-entry ( value string -- )
+  NextVariableCacheStart .orgv
+  CurrentVariableCacheStart @ OldVariableCacheStart !
+  NextVariableCacheStart @ CurrentVariableCacheStart !
+  .data32 
+  .data32
+  OldVariableCacheStart @ .data32 \ store the next pointer
+  NextVariableCacheStart is-here ;
+  
+  
+  
 
 VMStackEnd @ vmsp .register
 ParameterStackEnd @ sp   .register
