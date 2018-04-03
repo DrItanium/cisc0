@@ -64,13 +64,48 @@ CodeCacheEnd @ 0x3FFFFF - CodeCacheStart !
 \ variables to define
 : setvar16 ( value variable -- ) .orgv .data16 ;
 : setvar32 ( value variable -- ) .orgv .data32 ;
+variable StringInputMax
+254 StringInputMax !
 variable &IgnoreInput
 variable &IsCompiling
 variable &Capacity
+variable &StringInputMax
+variable &InputBufferStart
+variable &DictionaryFront
+variable &ParameterStackEmpty 
+variable &ParameterStackFull
+variable &SubroutineStackEmpty 
+variable &SubroutineStackFull
+variable &VMStackEmpty 
+variable &VMStackFull
+variable &StringCacheStart
+variable &StringCacheEnd
+variable &CodeCacheStart
+variable &CodeCacheEnd
+variable &DictionaryStart
+variable &DictionaryEnd
+variable &CurrentStringCacheStart
+variable &CurrentCodeCacheStart
+&Capacity defvar32
 &IgnoreInput defvar16
 &IsCompiling defvar16
-&Capacity defvar32
-
+&StringInputMax defvar16
+&InputBufferStart defvar32
+&DictionaryFront defvar32
+&ParameterStackEmpty defvar32
+&ParameterStackFull defvar32
+&SubroutineStackEmpty defvar32
+&SubroutineStackFull defvar32
+&VMStackEmpty defvar32
+&VMStackFull defvar32
+&StringCacheStart defvar32
+&StringCacheEnd defvar32
+&CodeCacheStart defvar32
+&CodeCacheEnd defvar32
+&DictionaryStart defvar32
+&DictionaryEnd defvar32
+&CurrentStringCacheStart defvar32
+&CurrentCodeCacheStart defvar32
 
 
 variable LeaveFunctionEarly
@@ -89,7 +124,22 @@ variable DoneWithLocals
 false &IgnoreInput setvar16
 false &IsCompiling setvar16
 Capacity @ &Capacity setvar32
+StringInputMax @ &StringInputMax setvar16
+InputBufferStart @ &InputBufferStart setvar32
+VMStackEnd @ &VMStackEmpty setvar32
+VMStackBegin @ &VMStackFull setvar32
+ParameterStackEnd @ &ParameterStackEmpty setvar32
+ParameterStackBegin @ &ParameterStackFull setvar32
+SubroutineStackEnd @ &SubroutineStackEmpty setvar32
+SubroutineStackBegin @ &SubroutineStackFull setvar32
+StringCacheStart @ &StringCacheStart setvar32
+StringCacheEnd @ &StringCacheEnd setvar32
+CodeCacheStart @ &CodeCacheStart setvar32
+CodeCacheEnd @ &CodeCacheEnd setvar32
+DictionaryStart @ &DictionaryStart setvar32
+DictionaryEnd @ &DictionaryEnd setvar32
 Capacity @ .capacity
+
 0 .org
 
 
@@ -156,28 +206,38 @@ func;
     val !push32
     func;
 .label ReadWord func:
-    InputBufferStart @ strp !set32
     254 temp !set8
-    temp strp !read-word 
+    InputBufferStart @ temp2 !set32
+    temp temp2 !read-word
     func;
-.label IgnoreInput func:
-    
+  
 : .char ( code -- ) 1 .data32 .data16 ;
 variable CurrentDictionaryFront
 variable OldDictionaryFront
+variable NextDictionaryEntry 
 0 CurrentDictionaryFront !
 0 OldDictionaryFront !
+DictionaryStart @ NextDictionaryEntry !
 : flag-none ( -- n ) 0x0 ;
 : flag-fake ( -- n ) 0x1 ;
 : flag-compile-time-invoke ( -- n ) 0x2 ;
 : flag-no-more ( -- n ) 0x4 ;
 : .dictionary-entry ( code string flags -- ) 
+  NextDictionaryEntry .orgv
   CurrentDictionaryFront @ OldDictionaryFront !
-  CurrentDictionaryFront is-here
+  NextDictionaryEntry @ CurrentDictionaryFront !
   .data32 
   OldDictionaryFront @ .data32 \ get the previous entry
   .data32 
-  .data32 ;
+  .data32 
+  NextDictionaryEntry is-here ;
+variable CurrentStringCacheStart
+StringCacheStart @ CurrentStringCacheStart !
+: .char-entry ( char label -- )
+  is-here 
+  .char
+  CurrentStringCacheStart is-here ;
+
 StringCacheStart .orgv
 .label NULLSTRING is-here 0x00 .char
 .label StringOpenParen is-here 0x28 .char
@@ -187,11 +247,15 @@ StringCacheStart .orgv
 DictionaryStart .orgv
 0 NULLSTRING @ flag-no-more .dictionary-entry 
 
+CodeCacheStart .orgv
+variable CurrentCodeCacheStart
+CodeCacheStart @ CurrentCodeCacheStart !
 VMStackEnd @ vmsp .register
 ParameterStackEnd @ sp   .register
 SubroutineStackEnd @ subrp  .register
-CodeCacheStart @ codp .register
-StringCacheStart @ strp .register
-CurrentDictionaryFront @ dp   .register
+CurrentCodeCacheStart @ codp .register
+CurrentCodeCacheStart @ &CurrentCodeCacheStart setvar32
+CurrentStringCacheStart @ &CurrentStringCacheStart setvar32
+CurrentDictionaryFront @ &DictionaryFront setvar32
 asm}
 close-input-file

@@ -31,6 +31,7 @@ enum}
 : vmsp ( -- n ) r7 ;
 : dp ( -- n ) r6 ; \ dictionary pointer
 : codp ( -- n ) r5 ; \ code cache pointer
+: vp ( -- n ) r4 ; \ variable pointer
 : loc0 ( -- n ) r3 ;
 : loc1 ( -- n ) r2 ; 
 : loc2 ( -- n ) r1 ;
