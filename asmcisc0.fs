@@ -674,10 +674,15 @@ enum}
 
 
 
-: !reg<-c  ( dest -- ) style-move-from-condition !single-reg-compare ;
-: !reg->c ( dest -- ) style-move-to-condition !single-reg-compare ;
+: !<-c  ( dest -- ) style-move-from-condition !single-reg-compare ;
+: !->c ( dest -- ) style-move-to-condition !single-reg-compare ;
 
-: -> ( src dest -- ) !move32 ;
+: -> ( src dest -- ) 
+  2dup 
+  <> 
+  if !move32 
+  else 2drop 
+  then ;
 : <- ( dest src -- ) swap ( val dest ) -> ;
 : <-val ( dest -- ) val <- ;
 : ->val ( src -- ) val -> ;

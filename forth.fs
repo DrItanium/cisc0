@@ -309,7 +309,7 @@ func;
     func;
 : save-register-to-address ( reg addr -- )
   addr !set32 
-  dup val <> if ->val else drop then \ don't emit an instruction if register is val already
+  ->val?
   0 !store32 ;
 : save-register-to-variable ( reg var -- ) @ save-register-to-address ;
 
