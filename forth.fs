@@ -182,9 +182,6 @@ StringCacheStart .orgv
 DictionaryStart .orgv
 0 NULLSTRING @ flag-no-more .dictionary-entry 
 
-CodeCacheStart .orgv
-variable CurrentCodeCacheStart
-CodeCacheStart @ CurrentCodeCacheStart !
 VariableStart .orgv
 variable CurrentVariableCacheStart
 variable OldVariableCacheStart
@@ -201,6 +198,7 @@ VariableStart @ NextVariableCacheStart !
   .data32
   OldVariableCacheStart @ .data32 \ store the next pointer
   NextVariableCacheStart is-here ;
+
 : !need-locals ( -- )
 {vmstack 
     loc0 !pushr
@@ -215,11 +213,23 @@ vmstack} ;
     loc1 !popr
     loc0 !popr
 vmstack} ;
+
+CodeCacheStart .orgv
+variable CurrentCodeCacheStart
+CodeCacheStart @ CurrentCodeCacheStart !
 \ redefine func: to also setup the code location pointers too
+: func: ( variable -- ) 
+  CodeCacheStart .orgv \ make sure we are in the right spot
+  func: \ now do the old action
+  ;
+: func; ( -- ) 
+  func; \ output the return
+  CodeCacheStart is-here \ update the code cache pointer too
+  ;
+\ now the use of func: and func; will yield data being placed in the code 
+\ section as a way to describe the action itself
 0 .org
 
-
-0x0000100 .org 
 LeaveFunctionEarly func: func;
 .label PrintNewline func: !put-cr func;
 .label PrintSpace func: !put-space func;
@@ -288,10 +298,6 @@ func;
     codp &CurrentCodeCacheStart save-register-to-variable
     dp &DictionaryFront save-register-to-variable 
     func;
-
-
-
-  
 
 VMStackEnd vmsp .registerv
 ParameterStackEnd sp   .registerv
