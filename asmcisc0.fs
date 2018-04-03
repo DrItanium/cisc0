@@ -224,7 +224,9 @@ variable current-address
 : style-terminate ( -- n ) literal ; enum,
 : style-putc ( -- n ) literal ; enum,
 : style-getc ( -- n ) literal ; enum,
-: style-read-word ( -- n ) literal ;
+: style-read-word ( -- n ) literal ; enum,
+: style-str-equals ( -- n ) literal ; enum,
+: style-str-copy ( -- n ) literal ;
 enum}
 : !misc ( body style -- ) 
   op-misc ->inst ( body style op )
@@ -239,9 +241,18 @@ enum}
 : !putc ( dest -- )
   0 ->destination
   style-putc !misc ;
-: !read-word ( dest -- )
+: !read-word ( src dest -- )
   0 ->destination
+  ->source
   style-read-word !misc ;
+: !str-equals ( src dest -- )
+  0 ->destination
+  ->source
+  style-str-equals !misc ;
+: !str-copy ( src dest -- )
+  0 ->destination
+  ->source 
+  style-str-copy !misc ;
 
 {enum
 : style-load ( -- n ) literal ; enum,

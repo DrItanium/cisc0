@@ -29,6 +29,7 @@
 
 #include "Core.h"
 #include "Problem.h"
+#include <sstream>
 
 namespace cisc0 {
 	void Register::increment(Address incrementValue) noexcept {
@@ -133,31 +134,6 @@ namespace cisc0 {
 		_keepExecuting = false;
 	}
 
-    void Core::invoke(const Core::PutCharacter& value) {
-        std::cout.put(char(getDestination(value).getInteger()));
-    }
-
-    void Core::invoke(const Core::GetCharacter& value) {
-        auto& dest = getDestination(value);
-        dest.setInteger(Integer(std::cin.get()));
-    }
-
-    void Core::invoke(const Core::ReadWord& value) {
-        auto& src = getDestination(value);
-        auto& dest = getRegister<ArchitectureConstants::StackPointer>();
-        std::string str;
-        std::cin >> str;
-        auto length = str.size();
-        auto size = src.getAddress();
-        auto cap = length > size ? size : length ;
-        storeWord(dest.getAddress(), MemoryWord(cap));
-        storeWord(dest.getAddress()+1, MemoryWord(cap >> 16));
-        auto start = dest.getAddress() + 2;
-        auto end = start + cap;
-        for (auto x = start, pos = 0u; x < end; ++x, ++pos) {
-            storeWord(x, MemoryWord(str[pos]));
-        }
-    }
 
 	void Core::invoke(const Core::Misc& value) {
 		variantInvoke(value);
@@ -245,8 +221,7 @@ namespace cisc0 {
 		} else if (lowerMask == 0x0000 && upperMask == 0xFFFF) {
 			storeWord(addr + 1, MemoryWord((val.getAddress() & 0xFFFF0000) >> 16));
 		} else if (lowerMask == 0xFFFF && upperMask == 0xFFFF) {
-			storeWord(addr, MemoryWord(val.getAddress() & 0x0000FFFF));
-			storeWord(addr + 1, MemoryWord((val.getAddress() & 0xFFFF0000) >> 16));
+            storeAddress(addr, val.getAddress());
 		} else {
 			if (lowerMask != 0) {
 				auto value = loadWord(addr) & ~lowerMask;
@@ -606,12 +581,6 @@ namespace cisc0 {
 	void Core::decode(MemoryWord first, Core::Return& value) { }
 
 	void Core::decode(MemoryWord first, Core::Terminate& value) { }
-    void Core::decode(MemoryWord first, Core::GetCharacter& value) { 
-        value.extract(first); 
-    }
-    void Core::decode(MemoryWord first, Core::PutCharacter& value) { 
-        value.extract(first); 
-    }
 
 	constexpr Core::MiscStyle getMiscStyle(MemoryWord word) noexcept {
 		return Core::MiscStyle((0b11110000 & word) >> 4);
@@ -633,6 +602,12 @@ namespace cisc0 {
                 break;
             case T::ReadWord:
                 value = Core::ReadWord();
+                break;
+            case T::StringCopy:
+                value = Core::StringCopy();
+                break;
+            case T::StringEquals:
+                value = Core::StringEquals();
                 break;
 			default:
 				throw Problem("Undefined or unimplemented misc operation!");
@@ -845,6 +820,85 @@ namespace cisc0 {
 	Register& Core::getAddressRegister() noexcept {
 		return getRegister<Core::ArchitectureConstants::AddressRegister>();
 	}
+    Address Core::loadAddress(Address addr) {
+        auto lower = Address(loadWord(addr));
+        auto upper = Address(loadWord(addr+1)) << 16;
+        return lower | upper;
+    }
+    std::string Core::loadString(Address base) {
+        auto size = loadAddress(base);
+        std::ostringstream ss;
+        auto offset = base + 2;
+        for (auto i = 0; i < size; ++i) {
+            ss << char(loadWord(i + offset));
+        }
+        auto str = ss.str();
+        return str;
+    }
+    void Core::storeAddress(Address a, Address v) {
+        storeWord(a, MemoryWord(v));
+        storeWord(a+1, MemoryWord(v >> 16));
+    }
+    void Core::storeString(Address base, Address count, const std::string& value) {
+        storeAddress(base, count);
+        auto offset = base + 2;
+        for (auto x = 0; x < count; ++x) {
+            storeWord(x + offset, MemoryWord(value[x]));
+        }
+    }
 
+    void Core::decode(MemoryWord first, StringCopy& value) {
+        value.extract(first);
+    }
+
+    void Core::decode(MemoryWord first, StringEquals& value) {
+        value.extract(first);
+    }
+
+    void Core::invoke(const StringCopy& value) {
+        auto& src = getSource(value);
+        auto& dest = getDestination(value);
+        auto sourceStr = loadString(src.getAddress());
+        storeString(dest.getAddress(), Address(sourceStr.size()), sourceStr);
+    }
+
+    void Core::invoke(const StringEquals& value) {
+        auto& src = getSource(value);
+        auto& dest = getDestination(value);
+        auto str0 = loadString(src.getAddress());
+        auto str1 = loadString(dest.getAddress());
+        _conditionRegister = (str0 == str1);
+    }
+
+    void Core::decode(MemoryWord first, Core::GetCharacter& value) { 
+        value.extract(first); 
+    }
+
+    void Core::decode(MemoryWord first, Core::PutCharacter& value) { 
+        value.extract(first); 
+    }
+
+    void Core::invoke(const Core::PutCharacter& value) {
+        std::cout.put(char(getDestination(value).getInteger()));
+    }
+
+    void Core::invoke(const Core::GetCharacter& value) {
+        auto& dest = getDestination(value);
+        dest.setInteger(Integer(std::cin.get()));
+    }
+
+    void Core::invoke(const Core::ReadWord& value) {
+        auto& src = getSource(value);
+        auto& dest = getDestination(value);
+        std::string str;
+        std::cin >> str;
+        auto length = str.size();
+        auto size = src.getAddress();
+        auto cap = length > size ? size : length ;
+        storeString(dest.getAddress(), cap, str);
+    }
+    void Core::decode(MemoryWord first, Core::ReadWord& value) {
+        value.extract(first);
+    }
 } // end namespace cisc0
 
