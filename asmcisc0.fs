@@ -22,14 +22,19 @@ enum}
 
 : pc ( -- n ) r15 ;
 : sp ( -- n ) r14 ;
-: csp ( -- n ) r13 ;
+: subrp ( -- n ) r13 ;
 : addr ( -- n ) r12 ;
 : val ( -- n ) r11 ;
 : temp ( -- n ) r10 ; 
 : temp2 ( -- n ) r9 ;
 : vmsp ( -- n ) r8 ;
-: loc0 ( -- n ) r7 ;
-: loc1 ( -- n ) r6 ; 
+: dp ( -- n ) r7 ; \ dictionary pointer
+: ccp ( -- n ) r6 ; \ code cache pointer
+: scp ( -- n ) r5 ; \ string cache pointer
+: loc0 ( -- n ) r3 ;
+: loc1 ( -- n ) r2 ; 
+: loc2 ( -- n ) r1 ;
+: loc3 ( -- n ) r0 ;
 
 
 {enum
@@ -659,7 +664,7 @@ enum}
 : !val->addr ( -- ) val ->addr ;
 : !addr->val ( -- ) addr ->val ;
 : !temp<->val ( -- ) temp val !<-> ;
-: !sp<->csp ( -- ) sp csp !<-> ;
+: !sp<->subrp ( -- ) sp subrp !<-> ;
 : tempdest ( a -- temp a ) temp swap ;
 : !push-immediate ( imm bitmask -- ) 
   dup ( imm bitmask bitmask )
@@ -674,18 +679,18 @@ enum}
 : !push-immediate16 ( imm -- ) 0m0011 !push-immediate ;
 : !push-immediate8  ( imm -- ) 0m0001 !push-immediate ;
 
-: !pop-subroutine ( dest bitmask -- ) !sp<->csp !pop !sp<->csp ;
+: !pop-subroutine ( dest bitmask -- ) !sp<->subrp !pop !sp<->subrp ;
 : !pop-subroutine32 ( immediate -- ) 0m1111 !pop-subroutine ;
 : !pop-subroutine24 ( immediate -- ) 0m0111 !pop-subroutine ;
 : !pop-subroutine16 ( immediate -- ) 0m0011 !pop-subroutine ;
 : !pop-subroutine8  ( immediate -- ) 0m0001 !pop-subroutine ;
 
-: !push-subroutine ( dest bitmask -- ) !sp<->csp !push !sp<->csp ;
+: !push-subroutine ( dest bitmask -- ) !sp<->subrp !push !sp<->subrp ;
 : !push-subroutine32 ( immediate -- ) 0m1111 !push-subroutine ;
 : !push-subroutine24 ( immediate -- ) 0m0111 !push-subroutine ;
 : !push-subroutine16 ( immediate -- ) 0m0011 !push-subroutine ;
 : !push-subroutine8  ( immediate -- ) 0m0001 !push-subroutine ;
-: !push-immediate-subroutine ( immediate bitmask -- ) !sp<->csp !push-immediate !sp<->csp ;
+: !push-immediate-subroutine ( immediate bitmask -- ) !sp<->subrp !push-immediate !sp<->subrp ;
 : !push-immediate-subroutine32 ( immediate -- ) 0m1111 !push-immediate-subroutine ;
 : !push-immediate-subroutine24 ( immediate -- ) 0m0111 !push-immediate-subroutine ;
 : !push-immediate-subroutine16 ( immediate -- ) 0m0011 !push-immediate-subroutine ;
