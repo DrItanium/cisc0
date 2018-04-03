@@ -829,7 +829,7 @@ namespace cisc0 {
         auto size = loadAddress(base);
         std::ostringstream ss;
         auto offset = base + 2;
-        for (auto i = 0; i < size; ++i) {
+        for (auto i = 0u; i < size; ++i) {
             ss << char(loadWord(i + offset));
         }
         auto str = ss.str();
@@ -842,7 +842,7 @@ namespace cisc0 {
     void Core::storeString(Address base, Address count, const std::string& value) {
         storeAddress(base, count);
         auto offset = base + 2;
-        for (auto x = 0; x < count; ++x) {
+        for (auto x = 0u; x < count; ++x) {
             storeWord(x + offset, MemoryWord(value[x]));
         }
     }
