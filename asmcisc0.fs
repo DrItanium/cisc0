@@ -25,7 +25,7 @@ enum}
 : subrp ( -- n ) r13 ;
 : addr ( -- n ) r12 ;
 : val ( -- n ) r11 ;
-: strp ( -- n ) r10 ; \ string pointer
+: strp ( -- n ) r10 ; \ string cache pointer
 : temp ( -- n ) r9 ; 
 : temp2 ( -- n ) r8 ;
 : vmsp ( -- n ) r7 ;

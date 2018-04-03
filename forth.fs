@@ -23,6 +23,8 @@ variable CodeCacheStart
 variable CodeCacheEnd
 variable VMVariablesStart
 variable VMVariablesEnd
+variable VariableStart
+variable VariableEnd
 : store-current-end ( variable -- ) 
   VMVariablesEnd @ swap ! ;
 : advance-var-end ( count -- )
@@ -41,6 +43,7 @@ variable VMVariablesEnd
 \ 0xD00000 - 0xEFFFFF dictionary
 \ 0xA00000 - 0xCFFFFF strings
 \ 0x600000 - 0x9FFFFF code
+\ 0x500000 - 0x5FFFFF variables
 0x100000 Capacity !
 Capacity @-64k VMStackEnd ! 
 VMStackEnd @-64k VMStackBegin !
@@ -61,6 +64,8 @@ DictionaryStart @ 1- StringCacheEnd !
 StringCacheEnd @ 0x3FFFFF - StringCacheStart !
 StringCacheStart @ 1- CodeCacheEnd !
 CodeCacheEnd @ 0x3FFFFF - CodeCacheStart !
+CodeCacheStart @ 1- VariableEnd !
+VariableEnd @ 0x0FFFFF - VariableStart !
 \ variables to define
 : setvar16 ( value variable -- ) .orgv .data16 ;
 : setvar32 ( value variable -- ) .orgv .data32 ;
@@ -84,8 +89,11 @@ variable &CodeCacheStart
 variable &CodeCacheEnd
 variable &DictionaryStart
 variable &DictionaryEnd
+variable &VariableStart
+variable &VariableEnd
 variable &CurrentStringCacheStart
 variable &CurrentCodeCacheStart
+variable &CurrentVariableCacheStart
 &Capacity defvar32
 &IgnoreInput defvar16
 &IsCompiling defvar16
@@ -104,8 +112,11 @@ variable &CurrentCodeCacheStart
 &CodeCacheEnd defvar32
 &DictionaryStart defvar32
 &DictionaryEnd defvar32
+&VariableStart defvar32
+&VariableEnd defvar32
 &CurrentStringCacheStart defvar32
 &CurrentCodeCacheStart defvar32
+&CurrentVariableCacheStart defvar32
 
 
 variable LeaveFunctionEarly
@@ -138,6 +149,8 @@ CodeCacheStart @ &CodeCacheStart setvar32
 CodeCacheEnd @ &CodeCacheEnd setvar32
 DictionaryStart @ &DictionaryStart setvar32
 DictionaryEnd @ &DictionaryEnd setvar32
+VariableStart @ &VariableStart setvar32
+VariableEnd @ &VariableEnd setvar32
 Capacity @ .capacity
 
 0 .org
@@ -250,12 +263,19 @@ DictionaryStart .orgv
 CodeCacheStart .orgv
 variable CurrentCodeCacheStart
 CodeCacheStart @ CurrentCodeCacheStart !
+VariableStart .orgv
+variable CurrentVariableCacheStart
+VariableStart @ CurrentVariableCacheStart !
+
 VMStackEnd @ vmsp .register
 ParameterStackEnd @ sp   .register
 SubroutineStackEnd @ subrp  .register
 CurrentCodeCacheStart @ codp .register
+CurrentVariableCacheStart @ vp .register
+CurrentStringCacheStart @ strp .register
 CurrentCodeCacheStart @ &CurrentCodeCacheStart setvar32
 CurrentStringCacheStart @ &CurrentStringCacheStart setvar32
 CurrentDictionaryFront @ &DictionaryFront setvar32
+CurrentVariableCacheStart @ &CurrentVariableCacheStart setvar32
 asm}
 close-input-file
