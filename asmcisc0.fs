@@ -168,6 +168,7 @@ variable capacity
 
 variable current-address
 : .org ( value -- ) mask-imm32 current-address ! ;
+: .orgv ( variable -- ) @ .org ;
 0 .org 
 
 : .here ( -- address ) current-address @ ;

@@ -21,6 +21,16 @@ variable StringCacheStart
 variable StringCacheEnd
 variable CodeCacheStart
 variable CodeCacheEnd
+variable VMVariablesStart
+variable VMVariableEnd
+: store-current-end ( variable -- ) 
+  VMVariableEnd @ swap ! ;
+: defvar16 ( variable -- ) 
+  store-current-end 
+  VMVariableEnd @ 1+ VMVariableEnd ! ;
+: defvar32 ( variable -- ) 
+  store-current-end 
+  VMVariableEnd @ 2+ VMVariableEnd ! ;
 \ 0xFE0000 - 0xFEFFFF vmstack
 \ 0xFD0000 - 0xFDFFFF parameter stack
 \ 0xFC0000 - 0xFCFFFF subroutine stack
@@ -40,18 +50,36 @@ SubroutineStackBegin @ 1- VMDataEnd !
 VMDataEnd @ 0xFFFF - VMDataStart !
 VMDataStart @ InputBufferStart !
 0x100 InputBufferStart @ + InputBufferEnd !
+InputBufferEnd @ VMVariablesStart !
+VMVaraiablesStart @ VMVariablesEnd !
+
 InputBufferStart @ 1- DictionaryEnd ! 
 DictionaryEnd @ 0x3FFFFF - DictionaryStart !
 DictionaryStart @ 1- StringCacheEnd !
 StringCacheEnd @ 0x3FFFFF - StringCacheStart !
 StringCacheStart @ 1- CodeCacheEnd !
 CodeCacheEnd @ 0x3FFFFF - CodeCacheStart !
+\ variables to define
+: setvar16 ( value variable -- ) .orgv .data16 ;
+: setvar32 ( value variable -- ) .orgv .data32 ;
+variable &IgnoreInput
+variable &IsCompiling
+variable &Capacity
+&IgnoreInput defvar16
+&IsCompiling defvar16
+&Capacity defvar32
+
+false &IgnoreInput setvar16
+false &IsCompiling setvar16
+Capacity @ &Capacity setvar32
+
 
 variable LeaveFunctionEarly
 variable NeedLocals
 variable DoneWithLocals
 : !newline? ( reg -- ) 0xA swap !eqi8 ;
 : !space? ( reg -- ) 0x20 swap !eqi8 ;
+: !)? ( reg -- ) 0x29 swap !eqi8 ;
 : !cuv ( variable -- ) @ !cu ;
 : !jcv ( variable -- ) @ !jc ;
 : !juv ( variable -- ) @ !ju ;
@@ -59,13 +87,7 @@ variable DoneWithLocals
 : !need-locals ( -- ) NeedLocals !cuv ;
 : !restore-locals ( -- ) DoneWithLocals !cuv ;
 {asm
-0x1000000 .capacity
-VMStackEnd @ vmsp .register
-ParameterStackEnd @ sp   .register
-SubroutineStackEnd @ subrp  .register
-DictionaryStart @ dp   .register
-CodeCacheStart @ codp .register
-StringCacheStart @ strp .register
+Capacity @ .capacity
 
 
 0x0000100 .org 
@@ -133,9 +155,40 @@ func;
 .label ReadWord func:
     InputBufferStart @ strp !set32
     254 temp !set8
-    temp !read-word 
+    temp strp !read-word 
     func;
+.label IgnoreInput func:
+    
+: .char ( code -- ) 1 .data32 .data16 ;
+variable CurrentDictionaryFront
+variable OldDictionaryFront
+0 CurrentDictionaryFront !
+0 OldDictionaryFront !
+: flag-none ( -- n ) 0x0 ;
+: flag-fake ( -- n ) 0x1 ;
+: flag-compile-time-invoke ( -- n ) 0x2 ;
+: flag-no-more ( -- n ) 0x4 ;
+: .dictionary-entry ( code string flags -- ) 
+  CurrentDictionaryFront @ OldDictionaryFront !
+  CurrentDictionaryFront is-here
+  .data32 
+  OldDictionaryFront @ .data32 \ get the previous entry
+  .data32 
+  .data32 ;
+StringCacheStart .orgv
+.label NULLSTRING is-here 0x00 .char
+.label StringOpenParen is-here 0x28 .char
+.label StringCloseParen is-here 0x29 .char
+.label StringSpace is-here 0x20 .char
+.label StringNewline is-here 0xA .char
+DictionaryStart .orgv
+0 NULLSTRING @ flag-no-more .dictionary-entry 
 
-
+VMStackEnd @ vmsp .register
+ParameterStackEnd @ sp   .register
+SubroutineStackEnd @ subrp  .register
+CodeCacheStart @ codp .register
+StringCacheStart @ strp .register
+CurrentDictionaryFront @ dp   .register
 asm}
 close-input-file
