@@ -210,6 +210,7 @@ variable current-address
 : !move-lower16 ( src dest -- ) !move16 ;
 : !move32 ( src dest -- ) 0m1111 !move ;
 : !move0 ( src dest -- ) 0m0000 !move ;
+: !zero ( dest -- ) dup !move0 ;
 
 : !<-> ( src dest -- ) 
   op-swap ->inst
@@ -727,7 +728,6 @@ enum}
 : !load-indirect ( offset mask -- ) 
   !over,load->addr ( offset mask )
   !load ;
-
 : !store-indirect ( offset mask -- ) 
   !temp<->val \ save val to temp as it will get clobbered
   !over,load->addr 

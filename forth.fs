@@ -54,6 +54,7 @@ variable DoneWithLocals
 : !space? ( reg -- ) 0x20 swap !eqi8 ;
 : !cuv ( variable -- ) @ !cu ;
 : !jcv ( variable -- ) @ !jc ;
+: !juv ( variable -- ) @ !ju ;
 : !leave-on-true ( -- ) LeaveFunctionEarly !jcv ;
 : !need-locals ( -- ) NeedLocals !cuv ;
 : !restore-locals ( -- ) DoneWithLocals !cuv ;
@@ -108,15 +109,15 @@ func;
     !swap 
     ComputeStringStart !cuv
     addr !popr \ then load the string start into addr
-    strlen !popr \ load the string length into temp
-    strlen !0=  \ see if temp is zero
+    temp !popr \ load the string length into temp
+    temp !0=  \ see if temp is zero
     !leave-on-true \ get out of here if it is not zero
 .label PrintStringLoopTop is-here
     0 !load8 \ load the character
     val !putc
     addr !1+
-    strlen !1-
-    strlen !0=
+    temp !1-
+    temp !0=
     PrintStringLoopTop !jcv
 func;
 
@@ -131,12 +132,50 @@ func;
     func;
 
 : base-address ( -- n ) loc0 ;
-: str-length ( -- n ) loc1 ;
-.label ReadLine func:
+.label RecordLengthAndLeaveEarly func:
+       addr ->val 
+       val !2- 
+       base-address ->addr
+       0 !store32
+       !restore-locals
+       func;
+.label ReadWord func:
     !need-locals
-    
-    !restore-locals
-func;
+    InputBufferStart @ base-address !set32
+    base-address ->addr
+    val val !move0 
+    0 !store32
+    addr !2+
+    \ skip until we get to a non space
+    .label ReadWord_IgnoreSpaceInput is-here
+    val !getc 
+    val !space?
+    ReadWord_IgnoreSpaceInput !jcv
+    val !newline?
+    ReadWord_IgnoreSpaceInput !jcv
+    .label ReadWordLoopStart is-here
+    0 !store16
+    addr !1+
+    InputBufferEnd @ addr !eqi32
+    RecordLengthAndLeaveEarly !jcv
+    \ get the next character
+    val !getc
+    \ see if it is a space or something similar
+    val !space?
+    temp !reg<-c 
+    temp temp !not
+    val !newline?
+    temp2 !reg<-c
+    temp2 temp2 !not
+    temp2 temp !and 
+    \ faff about doing conditional checks
+    temp !0<> 
+    temp !reg<-c
+    temp temp !not 
+    temp !reg->c
+    ReadWordLoopStart !jcv
+    \ then save everything when done
+    RecordLengthAndLeaveEarly !juv 
 
 asm}
 close-input-file
