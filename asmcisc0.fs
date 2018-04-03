@@ -25,12 +25,12 @@ enum}
 : subrp ( -- n ) r13 ;
 : addr ( -- n ) r12 ;
 : val ( -- n ) r11 ;
-: temp ( -- n ) r10 ; 
-: temp2 ( -- n ) r9 ;
-: vmsp ( -- n ) r8 ;
-: dp ( -- n ) r7 ; \ dictionary pointer
-: codp ( -- n ) r6 ; \ code cache pointer
-: strp ( -- n ) r5 ; \ string pointer
+: strp ( -- n ) r10 ; \ string pointer
+: temp ( -- n ) r9 ; 
+: temp2 ( -- n ) r8 ;
+: vmsp ( -- n ) r7 ;
+: dp ( -- n ) r6 ; \ dictionary pointer
+: codp ( -- n ) r5 ; \ code cache pointer
 : loc0 ( -- n ) r3 ;
 : loc1 ( -- n ) r2 ; 
 : loc2 ( -- n ) r1 ;
@@ -223,7 +223,8 @@ variable current-address
 : style-return ( -- n ) literal ; enum,
 : style-terminate ( -- n ) literal ; enum,
 : style-putc ( -- n ) literal ; enum,
-: style-getc ( -- n ) literal ; 
+: style-getc ( -- n ) literal ; enum,
+: style-read-word ( -- n ) literal ;
 enum}
 : !misc ( body style -- ) 
   op-misc ->inst ( body style op )
@@ -238,6 +239,9 @@ enum}
 : !putc ( dest -- )
   0 ->destination
   style-putc !misc ;
+: !read-word ( dest -- )
+  0 ->destination
+  style-read-word !misc ;
 
 {enum
 : style-load ( -- n ) literal ; enum,

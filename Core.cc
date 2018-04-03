@@ -142,6 +142,23 @@ namespace cisc0 {
         dest.setInteger(Integer(std::cin.get()));
     }
 
+    void Core::invoke(const Core::ReadWord& value) {
+        auto& src = getDestination(value);
+        auto& dest = getRegister<ArchitectureConstants::StackPointer>();
+        std::string str;
+        std::cin >> str;
+        auto length = str.size();
+        auto size = src.getAddress();
+        auto cap = length > size ? size : length ;
+        storeWord(dest.getAddress(), MemoryWord(cap));
+        storeWord(dest.getAddress()+1, MemoryWord(cap >> 16));
+        auto start = dest.getAddress() + 2;
+        auto end = start + cap;
+        for (auto x = start, pos = 0u; x < end; ++x, ++pos) {
+            storeWord(x, MemoryWord(str[pos]));
+        }
+    }
+
 	void Core::invoke(const Core::Misc& value) {
 		variantInvoke(value);
 	}
@@ -613,6 +630,9 @@ namespace cisc0 {
                 break;
             case T::PutCharacter:
                 value = Core::PutCharacter();
+                break;
+            case T::ReadWord:
+                value = Core::ReadWord();
                 break;
 			default:
 				throw Problem("Undefined or unimplemented misc operation!");

@@ -124,6 +124,7 @@ namespace cisc0 {
 				AddressRegister = R12,
 				/// used by load/store routines to describe the source or destination of the operation
 				ValueRegister = R11,
+                StringPointer = R10,
 			};
 			struct Extractable {
 				public:
@@ -492,6 +493,7 @@ namespace cisc0 {
 				Terminate,
                 PutCharacter,
                 GetCharacter,
+                ReadWord,
 			};
 			struct Return : Extractable { 
 				virtual void extract(MemoryWord a, MemoryWord b, MemoryWord c) noexcept override { }
@@ -505,6 +507,21 @@ namespace cisc0 {
                 }
             };
             struct GetCharacter : Extractable, HasDestination {
+                virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
+                    extractDestination(a);
+                }
+            };
+            /**
+             * Extract a single word (forth style) from input.
+             * The memory location used to store the word is found in the StringPointer register
+             * The number of characters read is placed in memory at the start of where string pointer is
+             * pointing to. The destination denotes the maximum size of the string. Use -1 for "unlimited"
+             *
+             * This operation can be implemented in terms of GetCharacter but after doing it enough times 
+             * I realize that this operation should be a feature of the core not something
+             * to stumble against. 
+             */
+            struct ReadWord : Extractable, HasDestination {
                 virtual void extract(MemoryWord a, MemoryWord b = 0, MemoryWord c = 0) noexcept override {
                     extractDestination(a);
                 }
@@ -548,6 +565,7 @@ namespace cisc0 {
 			void invoke(const Terminate& value);
             void invoke(const PutCharacter& value);
             void invoke(const GetCharacter& value);
+            void invoke(const ReadWord& value);
 			void invoke(const Misc& value);
 			void invoke(const Swap& value);
 			void invoke(const Set& value);
@@ -580,6 +598,7 @@ namespace cisc0 {
 			void decode(MemoryWord first, Terminate& value);
 			void decode(MemoryWord first, GetCharacter& value);
 			void decode(MemoryWord first, PutCharacter& value);
+            void decode(MemoryWord first, ReadWord& value);
 			void decode(MemoryWord first, Misc& value);
 			void decode(MemoryWord first, Swap& value);
 			void decode(MemoryWord first, Set& value);
