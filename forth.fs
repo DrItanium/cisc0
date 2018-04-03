@@ -30,6 +30,8 @@ variable VariableEnd
 : advance-var-end ( count -- )
   VMVariablesEnd @ + VMVariablesEnd ! ;
 : defvar ( variable -- ) store-current-end 2 advance-var-end ;
+: setvar ( value variable -- ) .orgv .data32 ;
+: setvarv ( variable variable ) .orgv .data32v ;
 \ 0xFE0000 - 0xFEFFFF vmstack
 \ 0xFD0000 - 0xFDFFFF parameter stack
 \ 0xFC0000 - 0xFCFFFF subroutine stack
@@ -62,7 +64,6 @@ CodeCacheEnd @ 0x3FFFFF - CodeCacheStart !
 CodeCacheStart @ 1- VariableEnd !
 VariableEnd @ 0x0FFFFF - VariableStart !
 \ variables to define
-: setvar ( value variable -- ) .orgv .data32 ;
 variable StringInputMax
 254 StringInputMax !
 variable &IgnoreInput
@@ -123,51 +124,103 @@ variable DoneWithLocals
 : !jcv ( variable -- ) @ !jc ;
 : !juv ( variable -- ) @ !ju ;
 : !leave-on-true ( -- ) LeaveFunctionEarly !jcv ;
-: !need-locals ( -- ) NeedLocals !cuv ;
-: !restore-locals ( -- ) DoneWithLocals !cuv ;
 {asm
 false &IgnoreInput setvar
 false &IsCompiling setvar
-Capacity @ &Capacity setvar
-StringInputMax @ &StringInputMax setvar
-InputBufferStart @ &InputBufferStart setvar
-VMStackEnd @ &VMStackEmpty setvar
-VMStackBegin @ &VMStackFull setvar
-ParameterStackEnd @ &ParameterStackEmpty setvar
-ParameterStackBegin @ &ParameterStackFull setvar
-SubroutineStackEnd @ &SubroutineStackEmpty setvar
-SubroutineStackBegin @ &SubroutineStackFull setvar
-StringCacheStart @ &StringCacheStart setvar
-StringCacheEnd @ &StringCacheEnd setvar
-CodeCacheStart @ &CodeCacheStart setvar
-CodeCacheEnd @ &CodeCacheEnd setvar
-DictionaryStart @ &DictionaryStart setvar
-DictionaryEnd @ &DictionaryEnd setvar
-VariableStart @ &VariableStart setvar
-VariableEnd @ &VariableEnd setvar
+Capacity &Capacity setvarv
+StringInputMax &StringInputMax setvarv
+InputBufferStart &InputBufferStart setvarv
+VMStackEnd &VMStackEmpty setvarv
+VMStackBegin &VMStackFull setvarv
+ParameterStackEnd &ParameterStackEmpty setvarv
+ParameterStackBegin &ParameterStackFull setvarv
+SubroutineStackEnd &SubroutineStackEmpty setvarv
+SubroutineStackBegin &SubroutineStackFull setvarv
+StringCacheStart &StringCacheStart setvarv
+StringCacheEnd &StringCacheEnd setvarv
+CodeCacheStart &CodeCacheStart setvarv
+CodeCacheEnd &CodeCacheEnd setvarv
+DictionaryStart &DictionaryStart setvarv
+DictionaryEnd &DictionaryEnd setvarv
+VariableStart &VariableStart setvarv
+VariableEnd &VariableEnd setvarv
 Capacity @ .capacity
 
-0 .org
+: .char ( code -- ) 1 .data32 .data16 ;
+variable CurrentDictionaryFront
+variable OldDictionaryFront
+variable NextDictionaryEntry 
+CurrentDictionaryFront 0!
+OldDictionaryFront 0!
+DictionaryStart @ NextDictionaryEntry !
+: flag-none ( -- n ) 0x0 ;
+: flag-fake ( -- n ) 0x1 ;
+: flag-compile-time-invoke ( -- n ) 0x2 ;
+: flag-no-more ( -- n ) 0x4 ;
+: .dictionary-entry ( code string flags -- ) 
+  NextDictionaryEntry .orgv
+  CurrentDictionaryFront @ OldDictionaryFront !
+  NextDictionaryEntry @ CurrentDictionaryFront !
+  .data32 
+  OldDictionaryFront @ .data32 \ get the previous entry
+  .data32 
+  .data32 
+  NextDictionaryEntry is-here ;
+variable CurrentStringCacheStart
+StringCacheStart @ CurrentStringCacheStart !
+: .char-entry ( char label -- )
+  is-here 
+  .char
+  CurrentStringCacheStart is-here ;
 
+StringCacheStart .orgv
+.label NULLSTRING is-here 0x00 .char
+.label StringOpenParen is-here 0x28 .char
+.label StringCloseParen is-here 0x29 .char
+.label StringSpace is-here 0x20 .char
+.label StringNewline is-here 0xA .char
+DictionaryStart .orgv
+0 NULLSTRING @ flag-no-more .dictionary-entry 
 
-0x0000100 .org 
-LeaveFunctionEarly func: func;
-NeedLocals func:
+CodeCacheStart .orgv
+variable CurrentCodeCacheStart
+CodeCacheStart @ CurrentCodeCacheStart !
+VariableStart .orgv
+variable CurrentVariableCacheStart
+variable OldVariableCacheStart
+variable NextVariableCacheStart
+CurrentVariableCacheStart 0!
+OldVariableCacheStart 0!
+VariableStart @ NextVariableCacheStart !
+
+: .variable-entry ( value string -- )
+  NextVariableCacheStart .orgv
+  CurrentVariableCacheStart @ OldVariableCacheStart !
+  NextVariableCacheStart @ CurrentVariableCacheStart !
+  .data32 
+  .data32
+  OldVariableCacheStart @ .data32 \ store the next pointer
+  NextVariableCacheStart is-here ;
+: !need-locals ( -- )
 {vmstack 
     loc0 !pushr
     loc1 !pushr
     loc2 !pushr
     loc3 !pushr
-vmstack}
-func;
-DoneWithLocals func:
+vmstack} ;
+: !restore-locals ( -- ) 
 {vmstack 
     loc3 !popr
     loc2 !popr
     loc1 !popr
     loc0 !popr
-vmstack}
-func;
+vmstack} ;
+\ redefine func: to also setup the code location pointers too
+0 .org
+
+
+0x0000100 .org 
+LeaveFunctionEarly func: func;
 .label PrintNewline func: !put-cr func;
 .label PrintSpace func: !put-space func;
 .label GetInputBuffer func: InputBufferStart @ !push-immediate32 func;
@@ -239,75 +292,17 @@ func;
 
 
   
-: .char ( code -- ) 1 .data32 .data16 ;
-variable CurrentDictionaryFront
-variable OldDictionaryFront
-variable NextDictionaryEntry 
-CurrentDictionaryFront 0!
-OldDictionaryFront 0!
-DictionaryStart @ NextDictionaryEntry !
-: flag-none ( -- n ) 0x0 ;
-: flag-fake ( -- n ) 0x1 ;
-: flag-compile-time-invoke ( -- n ) 0x2 ;
-: flag-no-more ( -- n ) 0x4 ;
-: .dictionary-entry ( code string flags -- ) 
-  NextDictionaryEntry .orgv
-  CurrentDictionaryFront @ OldDictionaryFront !
-  NextDictionaryEntry @ CurrentDictionaryFront !
-  .data32 
-  OldDictionaryFront @ .data32 \ get the previous entry
-  .data32 
-  .data32 
-  NextDictionaryEntry is-here ;
-variable CurrentStringCacheStart
-StringCacheStart @ CurrentStringCacheStart !
-: .char-entry ( char label -- )
-  is-here 
-  .char
-  CurrentStringCacheStart is-here ;
 
-StringCacheStart .orgv
-.label NULLSTRING is-here 0x00 .char
-.label StringOpenParen is-here 0x28 .char
-.label StringCloseParen is-here 0x29 .char
-.label StringSpace is-here 0x20 .char
-.label StringNewline is-here 0xA .char
-DictionaryStart .orgv
-0 NULLSTRING @ flag-no-more .dictionary-entry 
-
-CodeCacheStart .orgv
-variable CurrentCodeCacheStart
-CodeCacheStart @ CurrentCodeCacheStart !
-VariableStart .orgv
-variable CurrentVariableCacheStart
-variable OldVariableCacheStart
-variable NextVariableCacheStart
-CurrentVariableCacheStart 0!
-OldVariableCacheStart 0!
-VariableStart @ NextVariableCacheStart !
-
-: .variable-entry ( value string -- )
-  NextVariableCacheStart .orgv
-  CurrentVariableCacheStart @ OldVariableCacheStart !
-  NextVariableCacheStart @ CurrentVariableCacheStart !
-  .data32 
-  .data32
-  OldVariableCacheStart @ .data32 \ store the next pointer
-  NextVariableCacheStart is-here ;
-  
-  
-  
-
-VMStackEnd @ vmsp .register
-ParameterStackEnd @ sp   .register
-SubroutineStackEnd @ subrp  .register
-CurrentCodeCacheStart @ codp .register
-CurrentVariableCacheStart @ vp .register
-CurrentStringCacheStart @ strp .register
-CurrentDictionaryFront @ dp .register
-CurrentCodeCacheStart @ &CurrentCodeCacheStart setvar
-CurrentStringCacheStart @ &CurrentStringCacheStart setvar
-CurrentDictionaryFront @ &DictionaryFront setvar
-CurrentVariableCacheStart @ &CurrentVariableCacheStart setvar
+VMStackEnd vmsp .registerv
+ParameterStackEnd sp   .registerv
+SubroutineStackEnd subrp  .registerv
+CurrentCodeCacheStart codp .registerv
+CurrentVariableCacheStart vp .registerv
+CurrentStringCacheStart strp .registerv
+CurrentDictionaryFront dp .registerv
+CurrentCodeCacheStart &CurrentCodeCacheStart setvarv
+CurrentStringCacheStart &CurrentStringCacheStart setvarv
+CurrentDictionaryFront &DictionaryFront setvarv
+CurrentVariableCacheStart &CurrentVariableCacheStart setvarv
 asm}
 close-input-file

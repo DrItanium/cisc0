@@ -159,6 +159,7 @@ variable capacity
   linker-register bin<<q 
   bin<<h
   bin<<q ;
+: .registerv ( var index  -- ) swap @ swap .register ; 
 : .capacity ( capacity -- ) 
   dup capacity ! \ set the new capacity
   linker-capacity bin<<q 
@@ -189,12 +190,14 @@ variable current-address
   16 swap >>u .word16 \ followed by the upper 16
   ; 
 : .data32 ( value -- ) .word32 ;
+: .data32v ( var -- ) @ .data32 ;
 : .word64 ( value -- )
   dup ( upper lower -- )
   .word32 \ put the lower 32 into memory as is!
   32 swap >>u .word32 \ followed by the upper 32
   ;
 : .data64 ( value -- ) .word64 ;
+: .data64v ( value -- ) @ .data64 ;
 
 : deflabel ( -- ) variable ;
 : .label ( -- variable ) variable$ ;
