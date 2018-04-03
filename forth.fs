@@ -157,6 +157,23 @@ DictionaryStart @ NextDictionaryEntry !
 : flag-fake ( -- n ) 0x1 ;
 : flag-compile-time-invoke ( -- n ) 0x2 ;
 : flag-no-more ( -- n ) 0x4 ;
+\ Dictionary Format is:
+\ 0: Flags
+\ 2: Next Entry in Dictionary
+\ 4: Name of Entry 
+\ 6: Address of code body 
+: val<> ( top -- f ) dup val <> ;
+: addr<> ( top -- f ) dup addr <> ;
+: ->addr? ( top -- ) addr<> if ->addr else drop then ;
+: <-addr? ( top -- ) addr<> if <-addr else drop then ;
+: <-val? ( top -- ) val<> if <-val else drop then ;
+: ->val? ( top -- ) val<> if ->val else drop then ;
+: <-dflags ( dest src -- ) ->addr? 0 !load32 <-val? ;
+: <-dnext  ( dest src -- ) ->addr? 2 !load32 <-val? ;
+: <-dname  ( dest src -- ) ->addr? 4 !load32 <-val? ;
+: <-dcode  ( dest src -- ) ->addr? 6 !load32 <-val? ;
+
+
 : .dictionary-entry ( code string flags -- ) 
   NextDictionaryEntry .orgv
   CurrentDictionaryFront @ OldDictionaryFront !
@@ -190,6 +207,10 @@ CurrentVariableCacheStart 0!
 OldVariableCacheStart 0!
 VariableStart @ NextVariableCacheStart !
 
+\ variable format is:
+\ 0: Name { Address }
+\ 2: Value 
+\ 4: Next Variable 
 : .variable-entry ( value string -- )
   NextVariableCacheStart .orgv
   CurrentVariableCacheStart @ OldVariableCacheStart !
