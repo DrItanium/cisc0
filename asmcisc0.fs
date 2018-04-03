@@ -29,8 +29,8 @@ enum}
 : temp2 ( -- n ) r9 ;
 : vmsp ( -- n ) r8 ;
 : dp ( -- n ) r7 ; \ dictionary pointer
-: ccp ( -- n ) r6 ; \ code cache pointer
-: scp ( -- n ) r5 ; \ string cache pointer
+: codp ( -- n ) r6 ; \ code cache pointer
+: strp ( -- n ) r5 ; \ string pointer
 : loc0 ( -- n ) r3 ;
 : loc1 ( -- n ) r2 ; 
 : loc2 ( -- n ) r1 ;

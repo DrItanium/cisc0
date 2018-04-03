@@ -1,5 +1,5 @@
 \ basic string routines
-enable-debug
+\ enable-debug
 \ always pass on the stack
 : strlen ( -- n ) temp ;
 : 64k ( -- n ) 0x10000 ;
@@ -63,9 +63,11 @@ VMStackEnd @ vmsp .register
 ParameterStackEnd @ sp   .register
 SubroutineStackEnd @ subrp  .register
 DictionaryStart @ dp   .register
+CodeCacheStart @ codp .register
+StringCacheStart @ strp .register
 
 
-.org 0x0000100
+0x0000100 .org 
 LeaveFunctionEarly func: func;
 NeedLocals func:
 {vmstack 
