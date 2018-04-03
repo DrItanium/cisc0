@@ -243,8 +243,8 @@ func;
 variable CurrentDictionaryFront
 variable OldDictionaryFront
 variable NextDictionaryEntry 
-0 CurrentDictionaryFront !
-0 OldDictionaryFront !
+CurrentDictionaryFront 0!
+OldDictionaryFront 0!
 DictionaryStart @ NextDictionaryEntry !
 : flag-none ( -- n ) 0x0 ;
 : flag-fake ( -- n ) 0x1 ;
@@ -282,8 +282,8 @@ VariableStart .orgv
 variable CurrentVariableCacheStart
 variable OldVariableCacheStart
 variable NextVariableCacheStart
-0 CurrentVariableCacheStart !
-0 OldVariableCacheStart !
+CurrentVariableCacheStart 0!
+OldVariableCacheStart 0!
 VariableStart @ NextVariableCacheStart !
 
 : .variable-entry ( value string -- )

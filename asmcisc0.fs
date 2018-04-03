@@ -786,5 +786,6 @@ enum}
 : !sp<->vmsp ( -- ) sp vmsp !<-> ;
 : {vmstack ( -- ) !sp<->vmsp ;
 : vmstack} ( -- ) !sp<->vmsp ;
+: 0! ( variable -- ) 0swap ! ;
 close-input-file
 
