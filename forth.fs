@@ -22,15 +22,17 @@ variable StringCacheEnd
 variable CodeCacheStart
 variable CodeCacheEnd
 variable VMVariablesStart
-variable VMVariableEnd
+variable VMVariablesEnd
 : store-current-end ( variable -- ) 
-  VMVariableEnd @ swap ! ;
+  VMVariablesEnd @ swap ! ;
+: advance-var-end ( count -- )
+  VMVariablesEnd @ + VMVariablesEnd ! ;
 : defvar16 ( variable -- ) 
   store-current-end 
-  VMVariableEnd @ 1+ VMVariableEnd ! ;
+  1 advance-var-end ;
 : defvar32 ( variable -- ) 
   store-current-end 
-  VMVariableEnd @ 2+ VMVariableEnd ! ;
+  2 advance-var-end ;
 \ 0xFE0000 - 0xFEFFFF vmstack
 \ 0xFD0000 - 0xFDFFFF parameter stack
 \ 0xFC0000 - 0xFCFFFF subroutine stack
@@ -51,7 +53,7 @@ VMDataEnd @ 0xFFFF - VMDataStart !
 VMDataStart @ InputBufferStart !
 0x100 InputBufferStart @ + InputBufferEnd !
 InputBufferEnd @ VMVariablesStart !
-VMVaraiablesStart @ VMVariablesEnd !
+VMVariablesStart @ VMVariablesEnd !
 
 InputBufferStart @ 1- DictionaryEnd ! 
 DictionaryEnd @ 0x3FFFFF - DictionaryStart !
@@ -69,9 +71,6 @@ variable &Capacity
 &IsCompiling defvar16
 &Capacity defvar32
 
-false &IgnoreInput setvar16
-false &IsCompiling setvar16
-Capacity @ &Capacity setvar32
 
 
 variable LeaveFunctionEarly
@@ -87,7 +86,11 @@ variable DoneWithLocals
 : !need-locals ( -- ) NeedLocals !cuv ;
 : !restore-locals ( -- ) DoneWithLocals !cuv ;
 {asm
+false &IgnoreInput setvar16
+false &IsCompiling setvar16
+Capacity @ &Capacity setvar32
 Capacity @ .capacity
+0 .org
 
 
 0x0000100 .org 

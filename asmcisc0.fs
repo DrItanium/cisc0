@@ -181,16 +181,19 @@ variable current-address
   ++addr 
   bin<<q ;
 : .word16 ( value -- ) mask-imm16 ->done ;
+: .data16 ( value -- ) .word16 ;
 : .word32 ( value -- ) 
   dup ( upper lower -- )
   .word16 \ put the lower into memory as is! 
   16 swap >>u .word16 \ followed by the upper 16
   ; 
+: .data32 ( value -- ) .word32 ;
 : .word64 ( value -- )
   dup ( upper lower -- )
   .word32 \ put the lower 32 into memory as is!
   32 swap >>u .word32 \ followed by the upper 32
   ;
+: .data64 ( value -- ) .word64 ;
 
 : deflabel ( -- ) variable ;
 : .label ( -- variable ) variable$ ;
