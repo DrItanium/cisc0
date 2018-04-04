@@ -88,7 +88,7 @@ enum}
 : mask-imm3 ( index -- encoded ) 0x7 bitwise-andu ;
 : mask-imm2 ( index -- encoded ) 0x3 bitwise-andu ;
 : mask-flag ( index -- encoded ) 0x1 bitwise-andu ;
-: to-position ( value starting-pos -- shifted ) <<u ;
+: to-position ( value starting-pos -- shifted ) u<< ;
 : imm4-to-position ( value start -- shifted ) swap mask-imm4 swap to-position ;
 : to-highest4 ( value -- encoded ) 12 imm4-to-position ;
 : to-higher4 ( value -- encoded ) 8 imm4-to-position ;
@@ -187,14 +187,14 @@ variable current-address
 : .word32 ( value -- ) 
   dup ( upper lower -- )
   .word16 \ put the lower into memory as is! 
-  16 swap >>u .word16 \ followed by the upper 16
+  16 swap u>> .word16 \ followed by the upper 16
   ; 
 : .data32 ( value -- ) .word32 ;
 : .data32v ( var -- ) @ .data32 ;
 : .word64 ( value -- )
   dup ( upper lower -- )
   .word32 \ put the lower 32 into memory as is!
-  32 swap >>u .word32 \ followed by the upper 32
+  32 swap u>> .word32 \ followed by the upper 32
   ;
 : .data64 ( value -- ) .word64 ;
 : .data64v ( value -- ) @ .data64 ;
@@ -382,7 +382,7 @@ enum}
   ->bitmask
   ->destination 
   ->done ;
-: get-upper-half ( value -- upper ) 16 >>u mask-imm16 ;
+: get-upper-half ( value -- upper ) 16 u>> mask-imm16 ;
 : get-lower-half ( value -- lower ) mask-imm16 ;
 : split-into-halves ( value -- upper lower ) 
   dup ( value value )
