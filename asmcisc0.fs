@@ -802,5 +802,6 @@ enum}
 : !$@ ( value var -- value )
 \ first do the !$ then do the @
   !$ @ ;
+: variable! ( n -- ) variable$ ! ;
 close-input-file
 

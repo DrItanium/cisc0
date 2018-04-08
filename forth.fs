@@ -34,7 +34,7 @@ variable VariableEnd
   VMVariablesEnd @ swap ! ;
 : advance-var-end ( count -- )
   VMVariablesEnd @ + VMVariablesEnd ! ;
-: defvar ( -- ) variable$ store-current-end 2 advance-var-end ;
+: sysvar ( -- ) variable$ store-current-end 2 advance-var-end ;
 : setvar ( value variable -- ) .orgv .data32 ;
 : setvarv ( variable variable ) .orgv .data32v ;
 \ 0xFE0000 - 0xFEFFFF vmstack
@@ -69,31 +69,30 @@ CodeCacheStart !$@1-
 VariableEnd !$@ 0x0FFFFF - 
 VariableStart !
 \ variables to define
-variable StringInputMax
-254 StringInputMax !
-defvar &Capacity
-defvar &IgnoreInput
-defvar &IsCompiling
-defvar &StringInputMax
-defvar &InputBufferStart
-defvar &DictionaryFront
-defvar &ParameterStackEmpty
-defvar &ParameterStackFull
-defvar &SubroutineStackEmpty
-defvar &SubroutineStackFull
-defvar &VMStackEmpty
-defvar &VMStackFull
-defvar &StringCacheStart
-defvar &StringCacheEnd
-defvar &CodeCacheStart
-defvar &CodeCacheEnd
-defvar &DictionaryStart
-defvar &DictionaryEnd
-defvar &VariableStart
-defvar &VariableEnd
-defvar &CurrentStringCacheStart
-defvar &CurrentCodeCacheStart
-defvar &CurrentVariableCacheStart
+254 variable! StringInputMax 
+sysvar &Capacity
+sysvar &IgnoreInput
+sysvar &IsCompiling
+sysvar &StringInputMax
+sysvar &InputBufferStart
+sysvar &DictionaryFront
+sysvar &ParameterStackEmpty
+sysvar &ParameterStackFull
+sysvar &SubroutineStackEmpty
+sysvar &SubroutineStackFull
+sysvar &VMStackEmpty
+sysvar &VMStackFull
+sysvar &StringCacheStart
+sysvar &StringCacheEnd
+sysvar &CodeCacheStart
+sysvar &CodeCacheEnd
+sysvar &DictionaryStart
+sysvar &DictionaryEnd
+sysvar &VariableStart
+sysvar &VariableEnd
+sysvar &CurrentStringCacheStart
+sysvar &CurrentCodeCacheStart
+sysvar &CurrentVariableCacheStart
 
 
 variable LeaveFunctionEarly
