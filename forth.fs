@@ -251,24 +251,24 @@ CodeCacheStart @ CurrentCodeCacheStart !
 \ section as a way to describe the action itself
 0 .org
 
-LeaveFunctionEarly func: func;
-.label PrintNewline func: !put-cr func;
-.label PrintSpace func: !put-space func;
-.label GetInputBuffer func: InputBufferStart @ !push-immediate32 func;
-.label GetStringLength func:
+func: LeaveFunctionEarly func;
+func: PrintNewline !put-cr func;
+func: PrintSpace !put-space func;
+func: GetInputBuffer InputBufferStart @ !push-immediate32 func;
+func: GetStringLength
     ( a -- length )
     \ using we need to load the first 32-bit cell into the register
     addr !popr 
     0 !load32
     val !pushr
 func;
-.label ComputeStringStart func:
+func: ComputeStringStart
     ( a -- addr )
     addr !popr
     addr !2+
     addr !pushr
 func;
-.label PrintString func:
+func: PrintString
     ( a -- )
     !dup \ make a copy of the address
     GetStringLength !cuv
@@ -278,7 +278,7 @@ func;
     temp !popr \ load the string length into temp
     temp !0=  \ see if temp is zero
     !leave-on-true \ get out of here if it is not zero
-.label PrintStringLoopTop is-here
+func: PrintStringLoopTop
     0 !load8 \ load the character
     val !putc
     addr !1+
@@ -313,7 +313,7 @@ func: StoreToMemory
   0 !store32 ;
 : save-register-to-variable ( reg var -- ) @ save-register-to-address ;
 
-.label SynchronizeRegisterWithVariables func:
+func: SynchronizeRegisterWithVariables
     strp &CurrentStringCacheStart save-register-to-variable 
     vp &CurrentVariableCacheStart save-register-to-variable 
     codp &CurrentCodeCacheStart save-register-to-variable
