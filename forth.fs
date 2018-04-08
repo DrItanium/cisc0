@@ -3,7 +3,10 @@
 \ always pass on the stack
 : strlen ( -- n ) temp ;
 : 64k ( -- n ) 0x10000 ;
-: @-64k ( v -- n ) @ 64k - ;
+: -64k ( -- n ) 64k - ;
+: @-64k ( v -- n ) @ -64k ;
+: !$@-64k ( v -- n ) !$@ -64k ;
+
 variable Capacity
 variable VMStackEnd
 variable VMStackBegin
@@ -41,28 +44,28 @@ variable VariableEnd
 \ 0xA00000 - 0xCFFFFF strings
 \ 0x600000 - 0x9FFFFF code
 \ 0x500000 - 0x5FFFFF variables
-0x100000 Capacity !
-Capacity @-64k VMStackEnd ! 
-VMStackEnd @-64k VMStackBegin !
-VMStackBegin @ ParameterStackEnd !
-ParameterStackEnd @-64k ParameterStackBegin !
-ParameterStackBegin @ SubroutineStackEnd !
-SubroutineStackEnd @-64k SubroutineStackBegin !
-SubroutineStackBegin @ 1- VMDataEnd !
-VMDataEnd @ 0xFFFF - VMDataStart !
-VMDataStart @ InputBufferStart !
-0x100 InputBufferStart @ + InputBufferEnd !
-InputBufferEnd @ VMVariablesStart !
-VMVariablesStart @ VMVariablesEnd !
+0x100000 Capacity !$@-64k 
+VMStackEnd !$@-64k 
+VMStackBegin !$@ 
+ParameterStackEnd !$@-64k 
+ParameterStackBegin !$@ 
+SubroutineStackEnd !$@-64k 
+SubroutineStackBegin !$@ 1- 
+VMDataEnd !$@ 
+0xFFFF - VMDataStart !$@ 
+InputBufferStart !$
+0x100 swap @ + InputBufferEnd !$@ 
+VMVariablesStart !$@ 
+VMVariablesEnd !
 
-InputBufferStart @ 1- DictionaryEnd ! 
-DictionaryEnd @ 0x3FFFFF - DictionaryStart !
-DictionaryStart @ 1- StringCacheEnd !
-StringCacheEnd @ 0x3FFFFF - StringCacheStart !
-StringCacheStart @ 1- CodeCacheEnd !
-CodeCacheEnd @ 0x3FFFFF - CodeCacheStart !
-CodeCacheStart @ 1- VariableEnd !
-VariableEnd @ 0x0FFFFF - VariableStart !
+InputBufferStart @ 1- DictionaryEnd !$@ 
+0x3FFFFF - DictionaryStart !$@ 
+1- StringCacheEnd !$@
+0x3FFFFF - StringCacheStart !$@
+1- CodeCacheEnd !$@ 
+0x3FFFFF - CodeCacheStart !$@
+1- VariableEnd !$@ 
+0x0FFFFF - VariableStart !
 \ variables to define
 variable StringInputMax
 254 StringInputMax !

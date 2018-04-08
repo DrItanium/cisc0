@@ -794,5 +794,13 @@ enum}
 : {vmstack ( -- ) !sp<->vmsp ;
 : vmstack} ( -- ) !sp<->vmsp ;
 : 0! ( variable -- ) 0swap ! ;
+: !$ ( value var -- var ) 
+  \ do store as normal but keep the var around later
+  dup ( value var var )
+  -rot ( var value var )
+  ! ( var ) ;
+: !$@ ( value var -- value )
+\ first do the !$ then do the @
+  !$ @ ;
 close-input-file
 
