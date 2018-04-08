@@ -788,6 +788,8 @@ enum}
 
 : func: ( label -- ) is-here ;
 : func; ( -- ) !ret ;
+: defun: ( -- ) [compile] variable$ func: ;
+: defun; ( -- ) func; ;
 
 : assemble ( in out -- ) swap open-input-file ;
 

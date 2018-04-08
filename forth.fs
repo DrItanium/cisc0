@@ -287,21 +287,21 @@ func;
     PrintStringLoopTop !jcv
 func;
 
-.label PrintLine func:
+func: PrintLine
     ( a -- )
     PrintString !cuv
     !put-cr 
     func;
-.label ReadChar func:
+func: ReadChar 
     val !getc
     val !push32
     func;
-.label ReadWord func:
+func: ReadWord
     254 temp !set8
     InputBufferStart @ temp2 !set32
     temp temp2 !read-word
     func;
-.label StoreToMemory func:
+func: StoreToMemory
     ( value address -- )
     addr !popr
     val !popr
