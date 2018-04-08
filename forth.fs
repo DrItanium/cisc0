@@ -173,10 +173,8 @@ StringCacheStart .orgv
 .label StringCloseParen is-here 0x29 .char
 .label StringSpace is-here 0x20 .char
 .label StringNewline is-here 0xA .char
-DictionaryStart .orgv
 0 NULLSTRING @ flag-no-more .dictionary-entry 
 
-VariableStart .orgv
 variable0! CurrentVariableCacheStart
 variable0! OldVariableCacheStart
 VariableStart variable@! NextVariableCacheStart
