@@ -9,27 +9,28 @@
 : !$@1- ( v -- n ) !$@ 1- ;
 : @1- ( v -- n ) @ 1- ;
 
-variable Capacity
-variable VMStackEnd
-variable VMStackBegin
-variable ParameterStackBegin
-variable ParameterStackEnd
-variable SubroutineStackBegin
-variable SubroutineStackEnd
-variable VMDataStart
-variable VMDataEnd
-variable InputBufferStart
-variable InputBufferEnd
-variable DictionaryStart
-variable DictionaryEnd 
-variable StringCacheStart 
-variable StringCacheEnd
-variable CodeCacheStart
-variable CodeCacheEnd
-variable VMVariablesStart
-variable VMVariablesEnd
-variable VariableStart
-variable VariableEnd
+\ 0xFF000 - 0x100000 unused
+\ 0xFE000 - 0xFEFFF vmstack
+\ 0xFD000 - 0xFDFFF parameter stack
+\ 0xFC000 - 0xFCFFF subroutine stack
+\ 0xFB000 - 0xFBFFF vm data
+\ 0xFB000 - 0xFB0FF input buffer
+\ 0x50000 - 0xEFFFF dictionary
+0x100000 variable! Capacity
+0xFEFFF variable! VMStackEnd
+0xFE000 variable! VMStackBegin
+0xFE000 variable! ParameterStackBegin
+0xFD000 variable! ParameterStackEnd
+0xFD000 variable! SubroutineStackBegin
+0xFC000 variable! SubroutineStackEnd
+0xFC000 variable! VMDataEnd
+0xFB000 variable! VMDataStart
+VMDataStart variable@! InputBufferStart
+InputBufferStart @ 0x100 + variable! InputBufferEnd
+InputBufferEnd variable@! VMVariableStart 
+VMVariableStart variable@! VMVariablesEnd
+0x50000 variable! DictionaryStart
+0xF0000 variable! DictionaryEnd
 : store-current-end ( variable -- ) 
   VMVariablesEnd @ swap ! ;
 : advance-var-end ( count -- )
@@ -37,37 +38,6 @@ variable VariableEnd
 : sysvar ( -- ) variable$ store-current-end 2 advance-var-end ;
 : setvar ( value variable -- ) .orgv .data32 ;
 : setvarv ( variable variable ) .orgv .data32v ;
-\ 0xFE0000 - 0xFEFFFF vmstack
-\ 0xFD0000 - 0xFDFFFF parameter stack
-\ 0xFC0000 - 0xFCFFFF subroutine stack
-\ 0xFB0000 - 0xFBFFFF vm data
-\ 0xFB0000 - 0xFB00FF input buffer
-\ 0xD00000 - 0xEFFFFF dictionary
-\ 0xA00000 - 0xCFFFFF strings
-\ 0x600000 - 0x9FFFFF code
-\ 0x500000 - 0x5FFFFF variables
-0x100000 Capacity !$@-64k 
-VMStackEnd !$@-64k 
-VMStackBegin !$@ 
-ParameterStackEnd !$@-64k 
-ParameterStackBegin !$@ 
-SubroutineStackEnd !$@-64k 
-SubroutineStackBegin !$@1- 
-VMDataEnd !$@ 0xFFFF - 
-VMDataStart !$@ 
-InputBufferStart !$@ 0x100 +
-InputBufferEnd !$@ 
-VMVariablesStart !$@ 
-VMVariablesEnd !
-
-InputBufferStart @1- DictionaryEnd !$@ 0x3FFFFF - 
-DictionaryStart !$@1- 
-StringCacheEnd !$@ 0x3FFFFF - 
-StringCacheStart !$@1- 
-CodeCacheEnd !$@ 0x3FFFFF - 
-CodeCacheStart !$@1- 
-VariableEnd !$@ 0x0FFFFF - 
-VariableStart !
 \ variables to define
 254 variable! StringInputMax 
 sysvar &Capacity
@@ -82,17 +52,8 @@ sysvar &SubroutineStackEmpty
 sysvar &SubroutineStackFull
 sysvar &VMStackEmpty
 sysvar &VMStackFull
-sysvar &StringCacheStart
-sysvar &StringCacheEnd
-sysvar &CodeCacheStart
-sysvar &CodeCacheEnd
 sysvar &DictionaryStart
 sysvar &DictionaryEnd
-sysvar &VariableStart
-sysvar &VariableEnd
-sysvar &CurrentStringCacheStart
-sysvar &CurrentCodeCacheStart
-sysvar &CurrentVariableCacheStart
 
 
 variable LeaveFunctionEarly
@@ -117,14 +78,8 @@ ParameterStackEnd &ParameterStackEmpty setvarv
 ParameterStackBegin &ParameterStackFull setvarv
 SubroutineStackEnd &SubroutineStackEmpty setvarv
 SubroutineStackBegin &SubroutineStackFull setvarv
-StringCacheStart &StringCacheStart setvarv
-StringCacheEnd &StringCacheEnd setvarv
-CodeCacheStart &CodeCacheStart setvarv
-CodeCacheEnd &CodeCacheEnd setvarv
 DictionaryStart &DictionaryStart setvarv
 DictionaryEnd &DictionaryEnd setvarv
-VariableStart &VariableStart setvarv
-VariableEnd &VariableEnd setvarv
 Capacity @ .capacity
 
 : .char ( code -- ) 1 .data32 .data16 ;
@@ -132,9 +87,8 @@ variable0! CurrentDictionaryFront
 variable0! OldDictionaryFront
 DictionaryStart variable@! NextDictionaryEntry
 : flag-none ( -- n ) 0x0 ;
-: flag-fake ( -- n ) 0x1 ;
-: flag-compile-time-invoke ( -- n ) 0x2 ;
-: flag-no-more ( -- n ) 0x4 ;
+: flag-compile-time-invoke ( -- n ) 0x1 ;
+: flag-no-more ( -- n ) 0x2 ;
 \ Dictionary Format is:
 \ 0: Flags
 \ 2: Next Entry in Dictionary
@@ -152,45 +106,31 @@ DictionaryStart variable@! NextDictionaryEntry
 : <-dcode  ( dest src -- ) ->addr? 6 !load32 <-val? ;
 
 
-: .dictionary-entry ( code string flags -- ) 
-  NextDictionaryEntry .orgv
-  CurrentDictionaryFront OldDictionaryFront @!
-  NextDictionaryEntry CurrentDictionaryFront @!
-  .data32 
-  OldDictionaryFront @ .data32 \ get the previous entry
-  .data32 
-  .data32 
-  NextDictionaryEntry is-here ;
-StringCacheStart variable@! CurrentStringCacheStart 
-: .char-entry ( char label -- )
-  is-here 
-  .char
-  CurrentStringCacheStart is-here ;
 
-StringCacheStart .orgv
-.label NULLSTRING is-here 0x00 .char
-.label StringOpenParen is-here 0x28 .char
-.label StringCloseParen is-here 0x29 .char
-.label StringSpace is-here 0x20 .char
-.label StringNewline is-here 0xA .char
-0 NULLSTRING @ flag-no-more .dictionary-entry 
+\ StringCacheStart .orgv
+\ .label NULLSTRING is-here 0x00 .char
+\ .label StringOpenParen is-here 0x28 .char
+\ .label StringCloseParen is-here 0x29 .char
+\ .label StringSpace is-here 0x20 .char
+\ .label StringNewline is-here 0xA .char
+\ 0 NULLSTRING @ flag-no-more .dictionary-entry 
 
-variable0! CurrentVariableCacheStart
-variable0! OldVariableCacheStart
-VariableStart variable@! NextVariableCacheStart
+\ variable0! CurrentVariableCacheStart
+\ variable0! OldVariableCacheStart
+\ VariableStart variable@! NextVariableCacheStart
 
 \ variable format is:
 \ 0: Name { Address }
 \ 2: Value 
 \ 4: Next Variable 
-: .variable-entry ( value string -- )
-  NextVariableCacheStart .orgv
-  CurrentVariableCacheStart OldVariableCacheStart @!
-  NextVariableCacheStart CurrentVariableCacheStart @!
-  .data32 
-  .data32
-  OldVariableCacheStart @ .data32 \ store the next pointer
-  NextVariableCacheStart is-here ;
+\ : .variable-entry ( value string -- )
+\   NextVariableCacheStart .orgv
+\   CurrentVariableCacheStart OldVariableCacheStart @!
+\   NextVariableCacheStart CurrentVariableCacheStart @!
+\   .data32 
+\   .data32
+\   OldVariableCacheStart @ .data32 \ store the next pointer
+\   NextVariableCacheStart is-here ;
 
 : !need-locals ( -- )
 {vmstack 

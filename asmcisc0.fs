@@ -2,22 +2,22 @@
 : {asm ( a -- ) {bin ;
 : asm} ( -- ) bin} ;
 {enum
-: r0 ( -- n ) literal ; enum,
-: r1 ( -- n ) literal ; enum,
-: r2 ( -- n ) literal ; enum,
-: r3 ( -- n ) literal ; enum,
-: r4 ( -- n ) literal ; enum,
-: r5 ( -- n ) literal ; enum,
-: r6 ( -- n ) literal ; enum,
-: r7 ( -- n ) literal ; enum,
-: r8 ( -- n ) literal ; enum,
-: r9 ( -- n ) literal ; enum,
-: r10 ( -- n ) literal ; enum,
-: r11 ( -- n ) literal ; enum,
-: r12 ( -- n ) literal ; enum,
-: r13 ( -- n ) literal ; enum,
-: r14 ( -- n ) literal ; enum,
-: r15 ( -- n ) literal ; 
+enum: r0 
+enum: r1
+enum: r2
+enum: r3
+enum: r4
+enum: r5
+enum: r6
+enum: r7
+enum: r8
+enum: r9
+enum: r10
+enum: r11
+enum: r12
+enum: r13
+enum: r14
+enum: r15
 enum}
 
 : pc ( -- n ) r15 ;
@@ -39,35 +39,35 @@ enum}
 
 
 {enum
-: op-memory ( -- n ) literal ; enum,
-: op-arithmetic ( -- n ) literal ; enum,
-: op-shift ( -- n ) literal ; enum,
-: op-logical ( -- n ) literal ; enum,
-: op-compare ( -- n ) literal ; enum,
-: op-branch ( -- n ) literal ; enum,
-: op-move ( -- n ) literal ; enum,
-: op-set ( -- n ) literal ; enum,
-: op-swap ( -- n ) literal ; enum,
-: op-misc ( -- n ) literal ; 
+enum: op-memory
+enum: op-arithmetic
+enum: op-shift
+enum: op-logical
+enum: op-compare
+enum: op-branch
+enum: op-move
+enum: op-set
+enum: op-swap
+enum: op-misc
 enum}
 
 {enum
-: 0m0000 ( -- n ) literal ; enum,
-: 0m0001 ( -- n ) literal ; enum,
-: 0m0010 ( -- n ) literal ; enum,
-: 0m0011 ( -- n ) literal ; enum,
-: 0m0100 ( -- n ) literal ; enum,
-: 0m0101 ( -- n ) literal ; enum,
-: 0m0110 ( -- n ) literal ; enum,
-: 0m0111 ( -- n ) literal ; enum,
-: 0m1000 ( -- n ) literal ; enum,
-: 0m1001 ( -- n ) literal ; enum,
-: 0m1010 ( -- n ) literal ; enum,
-: 0m1011 ( -- n ) literal ; enum,
-: 0m1100 ( -- n ) literal ; enum,
-: 0m1101 ( -- n ) literal ; enum,
-: 0m1110 ( -- n ) literal ; enum,
-: 0m1111 ( -- n ) literal ;
+enum: 0m0000 
+enum: 0m0001 
+enum: 0m0010 
+enum: 0m0011 
+enum: 0m0100 
+enum: 0m0101 
+enum: 0m0110 
+enum: 0m0111 
+enum: 0m1000 
+enum: 0m1001 
+enum: 0m1010 
+enum: 0m1011 
+enum: 0m1100 
+enum: 0m1101 
+enum: 0m1110 
+enum: 0m1111
 enum}
 
 : upper-half? ( value -- f ) 0m1100 bitwise-andu 0<> ;
@@ -148,9 +148,9 @@ variable current-bitmask
   to-higher4 word, ;
 
 {enum
-: linker-capacity ( -- n ) literal ; enum,
-: linker-register ( -- n ) literal ; enum,
-: linker-memory ( -- n ) literal ; 
+enum: linker-capacity 
+enum: linker-register 
+enum: linker-memory 
 enum}
 variable capacity 
 0x1000000 capacity ! 
@@ -228,13 +228,13 @@ variable current-address
 : !nop ( -- ) r0 r0 !<-> ;
 
 {enum 
-: style-return ( -- n ) literal ; enum,
-: style-terminate ( -- n ) literal ; enum,
-: style-putc ( -- n ) literal ; enum,
-: style-getc ( -- n ) literal ; enum,
-: style-read-word ( -- n ) literal ; enum,
-: style-str-equals ( -- n ) literal ; enum,
-: style-str-copy ( -- n ) literal ;
+enum: style-return 
+enum: style-terminate 
+enum: style-putc 
+enum: style-getc 
+enum: style-read-word 
+enum: style-str-equals 
+enum: style-str-copy 
 enum}
 : !misc ( body style -- ) 
   op-misc ->inst ( body style op )
@@ -263,10 +263,10 @@ enum}
   style-str-copy !misc ;
 
 {enum
-: style-load ( -- n ) literal ; enum,
-: style-store ( -- n ) literal ; enum,
-: style-push ( -- n ) literal ; enum,
-: style-pop ( -- n ) literal ; 
+enum: style-load 
+enum: style-store 
+enum: style-push 
+enum: style-pop 
 enum}
 
 : !memory ( dest/offset bitmask kind2 -- ) 
@@ -406,13 +406,13 @@ enum}
 : !set0 ( dest -- ) 0 swap 0m0000 !set ;
 
 {enum
-: style-add ( -- n ) literal ; enum,
-: style-sub ( -- n ) literal ; enum,
-: style-mul ( -- n ) literal ; enum,
-: style-div ( -- n ) literal ; enum,
-: style-rem ( -- n ) literal ; enum,
-: style-min ( -- n ) literal ; enum,
-: style-max ( -- n ) literal ; 
+enum: style-add 
+enum: style-sub 
+enum: style-mul
+enum: style-div
+enum: style-rem
+enum: style-min
+enum: style-max
 enum}
 
 : ->arithmetic ( body imm? -- )
@@ -524,11 +524,11 @@ enum}
   !min ;
 
 {enum
-: style-and ( -- n ) literal ; enum,
-: style-or ( -- n ) literal ; enum,
-: style-xor ( -- n ) literal ; enum,
-: style-nand ( -- n ) literal ; enum,
-: style-not ( -- n ) literal ; 
+enum: style-and 
+enum: style-or 
+enum: style-xor 
+enum: style-nand 
+enum: style-not 
 enum}
 
 : ->logical ( body imm? -- ) 
@@ -592,14 +592,14 @@ enum}
 : !put-space ( -- ) 0x20 !putci ;
 
 {enum
-: style-equals ( -- n ) literal ; enum,
-: style-not-equals ( -- n ) literal ; enum,
-: style-less-than ( -- n ) literal ; enum,
-: style-greater-than ( -- n ) literal ; enum,
-: style-less-than-or-equal-to ( -- n ) literal ; enum,
-: style-greater-than-or-equal-to ( -- n ) literal ; enum,
-: style-move-from-condition ( -- n ) literal ; enum,
-: style-move-to-condition ( -- n ) literal ;
+enum: style-equals 
+enum: style-not-equals 
+enum: style-less-than 
+enum: style-greater-than 
+enum: style-less-than-or-equal-to 
+enum: style-greater-than-or-equal-to 
+enum: style-move-from-condition 
+enum: style-move-to-condition 
 enum}
 
 : ->compare ( body imm? -- )
