@@ -6,6 +6,8 @@
 : -64k ( -- n ) 64k - ;
 : @-64k ( v -- n ) @ -64k ;
 : !$@-64k ( v -- n ) !$@ -64k ;
+: !$@1- ( v -- n ) !$@ 1- ;
+: @1- ( v -- n ) @ 1- ;
 
 variable Capacity
 variable VMStackEnd
@@ -32,7 +34,7 @@ variable VariableEnd
   VMVariablesEnd @ swap ! ;
 : advance-var-end ( count -- )
   VMVariablesEnd @ + VMVariablesEnd ! ;
-: defvar ( variable -- ) store-current-end 2 advance-var-end ;
+: defvar ( -- ) variable$ store-current-end 2 advance-var-end ;
 : setvar ( value variable -- ) .orgv .data32 ;
 : setvarv ( variable variable ) .orgv .data32v ;
 \ 0xFE0000 - 0xFEFFFF vmstack
@@ -50,71 +52,48 @@ VMStackBegin !$@
 ParameterStackEnd !$@-64k 
 ParameterStackBegin !$@ 
 SubroutineStackEnd !$@-64k 
-SubroutineStackBegin !$@ 1- 
-VMDataEnd !$@ 
-0xFFFF - VMDataStart !$@ 
-InputBufferStart !$
-0x100 swap @ + InputBufferEnd !$@ 
+SubroutineStackBegin !$@1- 
+VMDataEnd !$@ 0xFFFF - 
+VMDataStart !$@ 
+InputBufferStart !$@ 0x100 +
+InputBufferEnd !$@ 
 VMVariablesStart !$@ 
 VMVariablesEnd !
 
-InputBufferStart @ 1- DictionaryEnd !$@ 
-0x3FFFFF - DictionaryStart !$@ 
-1- StringCacheEnd !$@
-0x3FFFFF - StringCacheStart !$@
-1- CodeCacheEnd !$@ 
-0x3FFFFF - CodeCacheStart !$@
-1- VariableEnd !$@ 
-0x0FFFFF - VariableStart !
+InputBufferStart @1- DictionaryEnd !$@ 0x3FFFFF - 
+DictionaryStart !$@1- 
+StringCacheEnd !$@ 0x3FFFFF - 
+StringCacheStart !$@1- 
+CodeCacheEnd !$@ 0x3FFFFF - 
+CodeCacheStart !$@1- 
+VariableEnd !$@ 0x0FFFFF - 
+VariableStart !
 \ variables to define
 variable StringInputMax
 254 StringInputMax !
-variable &IgnoreInput
-variable &IsCompiling
-variable &Capacity
-variable &StringInputMax
-variable &InputBufferStart
-variable &DictionaryFront
-variable &ParameterStackEmpty 
-variable &ParameterStackFull
-variable &SubroutineStackEmpty 
-variable &SubroutineStackFull
-variable &VMStackEmpty 
-variable &VMStackFull
-variable &StringCacheStart
-variable &StringCacheEnd
-variable &CodeCacheStart
-variable &CodeCacheEnd
-variable &DictionaryStart
-variable &DictionaryEnd
-variable &VariableStart
-variable &VariableEnd
-variable &CurrentStringCacheStart
-variable &CurrentCodeCacheStart
-variable &CurrentVariableCacheStart
-&Capacity defvar
-&IgnoreInput defvar
-&IsCompiling defvar
-&StringInputMax defvar
-&InputBufferStart defvar
-&DictionaryFront defvar
-&ParameterStackEmpty defvar
-&ParameterStackFull defvar
-&SubroutineStackEmpty defvar
-&SubroutineStackFull defvar
-&VMStackEmpty defvar
-&VMStackFull defvar
-&StringCacheStart defvar
-&StringCacheEnd defvar
-&CodeCacheStart defvar
-&CodeCacheEnd defvar
-&DictionaryStart defvar
-&DictionaryEnd defvar
-&VariableStart defvar
-&VariableEnd defvar
-&CurrentStringCacheStart defvar
-&CurrentCodeCacheStart defvar
-&CurrentVariableCacheStart defvar
+defvar &Capacity
+defvar &IgnoreInput
+defvar &IsCompiling
+defvar &StringInputMax
+defvar &InputBufferStart
+defvar &DictionaryFront
+defvar &ParameterStackEmpty
+defvar &ParameterStackFull
+defvar &SubroutineStackEmpty
+defvar &SubroutineStackFull
+defvar &VMStackEmpty
+defvar &VMStackFull
+defvar &StringCacheStart
+defvar &StringCacheEnd
+defvar &CodeCacheStart
+defvar &CodeCacheEnd
+defvar &DictionaryStart
+defvar &DictionaryEnd
+defvar &VariableStart
+defvar &VariableEnd
+defvar &CurrentStringCacheStart
+defvar &CurrentCodeCacheStart
+defvar &CurrentVariableCacheStart
 
 
 variable LeaveFunctionEarly
