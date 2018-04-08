@@ -803,5 +803,13 @@ enum}
 \ first do the !$ then do the @
   !$ @ ;
 : variable! ( n -- ) variable$ ! ;
+: @! ( v0 v1 -- ) 
+  \ load the lower variable and then store it in the upper
+  swap @ ( v1 n )
+  swap ! ; 
+: variable@! ( var -- ) 
+  @ ( n )
+  variable! ;
+: variable0! ( -- ) 0 variable! ;
 close-input-file
 

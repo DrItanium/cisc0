@@ -128,12 +128,9 @@ VariableEnd &VariableEnd setvarv
 Capacity @ .capacity
 
 : .char ( code -- ) 1 .data32 .data16 ;
-variable CurrentDictionaryFront
-variable OldDictionaryFront
-variable NextDictionaryEntry 
-CurrentDictionaryFront 0!
-OldDictionaryFront 0!
-DictionaryStart @ NextDictionaryEntry !
+variable0! CurrentDictionaryFront
+variable0! OldDictionaryFront
+DictionaryStart variable@! NextDictionaryEntry
 : flag-none ( -- n ) 0x0 ;
 : flag-fake ( -- n ) 0x1 ;
 : flag-compile-time-invoke ( -- n ) 0x2 ;
@@ -157,15 +154,14 @@ DictionaryStart @ NextDictionaryEntry !
 
 : .dictionary-entry ( code string flags -- ) 
   NextDictionaryEntry .orgv
-  CurrentDictionaryFront @ OldDictionaryFront !
-  NextDictionaryEntry @ CurrentDictionaryFront !
+  CurrentDictionaryFront OldDictionaryFront @!
+  NextDictionaryEntry CurrentDictionaryFront @!
   .data32 
   OldDictionaryFront @ .data32 \ get the previous entry
   .data32 
   .data32 
   NextDictionaryEntry is-here ;
-variable CurrentStringCacheStart
-StringCacheStart @ CurrentStringCacheStart !
+StringCacheStart variable@! CurrentStringCacheStart 
 : .char-entry ( char label -- )
   is-here 
   .char
@@ -181,12 +177,9 @@ DictionaryStart .orgv
 0 NULLSTRING @ flag-no-more .dictionary-entry 
 
 VariableStart .orgv
-variable CurrentVariableCacheStart
-variable OldVariableCacheStart
-variable NextVariableCacheStart
-CurrentVariableCacheStart 0!
-OldVariableCacheStart 0!
-VariableStart @ NextVariableCacheStart !
+variable0! CurrentVariableCacheStart
+variable0! OldVariableCacheStart
+VariableStart variable@! NextVariableCacheStart
 
 \ variable format is:
 \ 0: Name { Address }
@@ -194,8 +187,8 @@ VariableStart @ NextVariableCacheStart !
 \ 4: Next Variable 
 : .variable-entry ( value string -- )
   NextVariableCacheStart .orgv
-  CurrentVariableCacheStart @ OldVariableCacheStart !
-  NextVariableCacheStart @ CurrentVariableCacheStart !
+  CurrentVariableCacheStart OldVariableCacheStart @!
+  NextVariableCacheStart CurrentVariableCacheStart @!
   .data32 
   .data32
   OldVariableCacheStart @ .data32 \ store the next pointer
@@ -217,8 +210,7 @@ vmstack} ;
 vmstack} ;
 
 CodeCacheStart .orgv
-variable CurrentCodeCacheStart
-CodeCacheStart @ CurrentCodeCacheStart !
+CodeCacheStart variable@! CurrentCodeCacheStart
 \ redefine func: to also setup the code location pointers too
 : func: ( variable -- ) 
   CodeCacheStart .orgv \ make sure we are in the right spot
