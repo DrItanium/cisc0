@@ -25,13 +25,11 @@ enum}
 : subrp ( -- n ) r13 ;
 : addr ( -- n ) r12 ;
 : val ( -- n ) r11 ;
-: strp ( -- n ) r10 ; \ string cache pointer
-: temp ( -- n ) r9 ; 
-: temp2 ( -- n ) r8 ;
-: vmsp ( -- n ) r7 ;
-: dp ( -- n ) r6 ; \ dictionary pointer
-: codp ( -- n ) r5 ; \ code cache pointer
-: vp ( -- n ) r4 ; \ variable pointer
+: temp ( -- n ) r10 ; 
+: temp2 ( -- n ) r9 ;
+: vmsp ( -- n ) r8 ;
+: dp ( -- n ) r7 ; \ dictionary pointer
+: ip ( -- n ) r6 ; \ index pointer
 : loc0 ( -- n ) r3 ;
 : loc1 ( -- n ) r2 ; 
 : loc2 ( -- n ) r1 ;

@@ -147,17 +147,17 @@ vmstack} ;
     loc0 !popr
 vmstack} ;
 
-CodeCacheStart .orgv
-CodeCacheStart variable@! CurrentCodeCacheStart
-\ redefine func: to also setup the code location pointers too
-: func: ( variable -- ) 
-  CodeCacheStart .orgv \ make sure we are in the right spot
-  func: \ now do the old action
-  ;
-: func; ( -- ) 
-  func; \ output the return
-  CodeCacheStart is-here \ update the code cache pointer too
-  ;
+\ CodeCacheStart .orgv
+\ CodeCacheStart variable@! CurrentCodeCacheStart
+\ \ redefine func: to also setup the code location pointers too
+\ : func: ( variable -- ) 
+\   CodeCacheStart .orgv \ make sure we are in the right spot
+\   func: \ now do the old action
+\   ;
+\ : func; ( -- ) 
+\   func; \ output the return
+\   CodeCacheStart is-here \ update the code cache pointer too
+\   ;
 \ now the use of func: and func; will yield data being placed in the code 
 \ section as a way to describe the action itself
 0 .org
@@ -225,22 +225,22 @@ func: StoreToMemory
 : save-register-to-variable ( reg var -- ) @ save-register-to-address ;
 
 func: SynchronizeRegisterWithVariables
-    strp &CurrentStringCacheStart save-register-to-variable 
-    vp &CurrentVariableCacheStart save-register-to-variable 
-    codp &CurrentCodeCacheStart save-register-to-variable
+    \ strp &CurrentStringCacheStart save-register-to-variable 
+    \ vp &CurrentVariableCacheStart save-register-to-variable 
+    \ codp &CurrentCodeCacheStart save-register-to-variable
     dp &DictionaryFront save-register-to-variable 
     func;
 
 VMStackEnd vmsp .registerv
 ParameterStackEnd sp   .registerv
 SubroutineStackEnd subrp  .registerv
-CurrentCodeCacheStart codp .registerv
-CurrentVariableCacheStart vp .registerv
-CurrentStringCacheStart strp .registerv
+\ CurrentCodeCacheStart codp .registerv
+\ CurrentVariableCacheStart vp .registerv
+\ CurrentStringCacheStart strp .registerv
 CurrentDictionaryFront dp .registerv
-CurrentCodeCacheStart &CurrentCodeCacheStart setvarv
-CurrentStringCacheStart &CurrentStringCacheStart setvarv
+\ CurrentCodeCacheStart &CurrentCodeCacheStart setvarv
+\ CurrentStringCacheStart &CurrentStringCacheStart setvarv
 CurrentDictionaryFront &DictionaryFront setvarv
-CurrentVariableCacheStart &CurrentVariableCacheStart setvarv
+\ CurrentVariableCacheStart &CurrentVariableCacheStart setvarv
 asm}
 close-input-file
