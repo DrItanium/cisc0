@@ -4,7 +4,6 @@
 
 include config.mk
 
-
 COMMON_THINGS = Core.o
 
 SIMULATOR_BINARY = simcisc0
@@ -23,7 +22,7 @@ ALL_OBJECTS = ${COMMON_THINGS} \
 			  ${SIMULATOR_OBJECTS} \
 			  ${LINKER_OBJECTS} 
 
-all: options forth ${ALL_BINARIES}
+all: options ${ALL_BINARIES}
 
 docs: ${ALL_BINARIES}
 	@echo "running doxygen"
@@ -50,20 +49,12 @@ ${LINKER_BINARY}: ${LINKER_OBJECTS}
 	@echo LD $@
 	@${CXX} ${LDFLAGS} -o ${LINKER_BINARY} ${LINKER_OBJECTS}
 
-forth:
-	@cd misc/forth_interpreter/ && ${MAKE} 
-	@cp misc/forth_interpreter/forth .
-
-nuke: clean
-	@echo Nuking...
-	@rm -f forth
-	@cd misc/forth_interpreter/ && ${MAKE} clean
 
 clean:
 	@echo Cleaning...
 	@rm -f ${ALL_OBJECTS} ${ALL_BINARIES}
 
 
-.PHONY: all options clean docs forth
+.PHONY: all options clean docs
 
 include deps.make
